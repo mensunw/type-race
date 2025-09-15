@@ -22,6 +22,7 @@ export default function TypingArea({
   onKeyPress,
 }: TypingAreaProps) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const textContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (isGameActive && inputRef.current) {
@@ -29,28 +30,85 @@ export default function TypingArea({
     }
   }, [isGameActive]);
 
-  const getCharacterClass = (index: number) => {
-    if (index < userInput.length) {
-      // Spaces are always highlighted green
-      if (text[index] === ' ') {
-        return 'bg-green-200 text-green-800';
+  // Auto-scroll logic when currentIndex changes
+  useEffect(() => {
+    if (textContainerRef.current && isGameActive) {
+      const container = textContainerRef.current;
+
+      // Find the current character element
+      const currentCharElement = container.querySelector(`[data-char-index="${currentIndex}"]`);
+
+      if (currentCharElement) {
+        // Use scrollIntoView to ensure the current character is visible
+        // with some padding to show upcoming text
+        currentCharElement.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center', // Keep cursor in center of view
+          inline: 'nearest'
+        });
       }
+    }
+  }, [currentIndex, isGameActive]);
+
+  const getWordBoundaries = () => {
+    const words = [];
+    let currentWord = { start: 0, end: 0 };
+
+    for (let i = 0; i <= text.length; i++) {
+      if (i === text.length || text[i] === ' ') {
+        currentWord.end = i;
+        words.push(currentWord);
+        currentWord = { start: i + 1, end: i + 1 };
+      }
+    }
+
+    return words;
+  };
+
+  const hasWordError = (wordStart: number, wordEnd: number) => {
+    // Only show error underline if user has moved past this word
+    if (currentIndex <= wordEnd) {
+      return false; // User is still on or before this word
+    }
+
+    // Check if the completed word has any errors
+    for (let i = wordStart; i < wordEnd; i++) {
+      if (skippedChars.has(i) || (i < userInput.length && userInput[i] !== text[i])) {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  const getCharacterClass = (index: number, wordHasError: boolean) => {
+    let baseClass = 'px-0.5 py-0.5 transition-colors duration-150';
+
+    if (wordHasError) {
+      baseClass += ' underline decoration-red-500 decoration-2 decoration-solid';
+    }
+
+    if (index < userInput.length) {
       // Check if character was skipped via spacebar
       if (skippedChars.has(index)) {
-        return 'bg-gray-200 text-gray-600';
+        return `${baseClass} text-gray-500`;
       }
-      // Normal typing: green for correct, red for incorrect
-      return userInput[index] === text[index] ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800';
+      // Normal typing: black for correct, red for incorrect
+      if (userInput[index] === text[index]) {
+        return `${baseClass} text-black`;
+      } else {
+        return `${baseClass} text-red-600`;
+      }
     } else if (index === currentIndex) {
-      return 'bg-blue-200 border-2 border-blue-400';
+      return `${baseClass} border-l-2 border-blue-500 text-gray-500`;
     }
-    return 'text-gray-600';
+    return `${baseClass} text-gray-500`;
   };
 
   return (
     <div className="mb-6">
       <div
-        className="relative bg-white border-2 border-gray-200 rounded-lg p-4 sm:p-6 mb-4 font-mono text-sm sm:text-lg leading-relaxed min-h-[120px] max-h-[200px] overflow-y-auto break-words cursor-text"
+        ref={textContainerRef}
+        className="relative bg-white border-2 border-gray-200 rounded-lg p-4 sm:p-6 mb-4 font-mono text-sm sm:text-lg leading-relaxed h-[6rem] sm:h-[7.2rem] overflow-y-auto break-words cursor-text"
         onClick={() => {
           if (isGameActive && inputRef.current) {
             inputRef.current.focus();
@@ -58,14 +116,24 @@ export default function TypingArea({
         }}
       >
         <div className="flex flex-wrap">
-          {text.split('').map((char, index) => (
-            <span
-              key={index}
-              className={`px-0.5 py-0.5 rounded transition-colors duration-150 ${getCharacterClass(index)}`}
-            >
-              {char === ' ' ? '\u00A0' : char}
-            </span>
-          ))}
+          {(() => {
+            const words = getWordBoundaries();
+            return text.split('').map((char, index) => {
+              const currentWord = words.find(word => index >= word.start && index < word.end);
+              const wordHasError = currentWord ? hasWordError(currentWord.start, currentWord.end) : false;
+
+              return (
+                <span
+                  key={index}
+                  data-char-index={index}
+                  className={getCharacterClass(index, wordHasError)}
+                  style={index === currentIndex ? { borderLeftStyle: 'solid', borderRadius: 0 } : {}}
+                >
+                  {char === ' ' ? '\u00A0' : char}
+                </span>
+              );
+            });
+          })()}
         </div>
 
         {!isGameActive && (
