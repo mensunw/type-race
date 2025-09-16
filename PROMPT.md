@@ -1,1 +1,1 @@
-for the race, let's add a configuration for users to select the number of characters they have to get right in order for someone (them or the bot) to win the race. please create a new component for this.
+i need a document (handeoff.md) to pass this work to another developer. make sure you include everything that you have done
