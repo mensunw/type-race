@@ -6,6 +6,7 @@ import Track from '../components/Track';
 import Stats from '../components/Stats';
 import TypingArea from '../components/TypingArea';
 import EndGameModal from '../components/EndGameModal';
+import RaceSettings from '../components/RaceSettings';
 
 const SAMPLE_TEXT = "The quick brown fox jumps over the lazy dog. This pangram contains all letters of the alphabet and is commonly used for typing practice. Speed and accuracy are both important when learning to type efficiently. In the digital age, typing has become an essential skill for students, professionals, and everyday computer users. The ability to type quickly and accurately can significantly improve productivity and communication. Many people spend hours each day using keyboards, whether for work, education, or personal activities. Touch typing, which involves typing without looking at the keyboard, is considered the most efficient method. It allows typists to focus on the content they are creating rather than searching for individual keys. Learning proper finger placement and muscle memory takes practice and dedication. The home row keys serve as the foundation for touch typing technique. Each finger has designated keys to press, and with consistent practice, the movements become automatic. Regular typing exercises help develop speed while maintaining accuracy. It is better to type slowly and correctly than to type quickly with many errors. Proofreading and editing skills are equally important as typing speed. Many typing programs and games are available to help people improve their skills. These tools often include lessons, tests, and challenges that make learning more engaging and fun. Some focus on specific areas like number typing, special characters, or programming symbols. Setting realistic goals and tracking progress can help maintain motivation during the learning process. Professional typists and data entry specialists can achieve typing speeds of over one hundred words per minute. However, for most people, a typing speed of thirty to fifty words per minute is sufficient for daily tasks. The key is finding the right balance between speed and accuracy for your specific needs and requirements.";
 
@@ -25,24 +26,17 @@ export default function SinglePlayerPage() {
   const [botProgress, setBotProgress] = useState(0);
   const [winner, setWinner] = useState<'player' | 'bot' | null>(null);
   const [skippedWords, setSkippedWords] = useState<Set<number>>(new Set());
+  const [targetCharCount, setTargetCharCount] = useState(200); // Default to 200 characters
+  const [showSettings, setShowSettings] = useState(false);
 
   const timerRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const botTimerRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
   // Split text into words for word-based typing
   const words = SAMPLE_TEXT.split(' ');
-  const totalWords = words.length;
 
-  // Calculate progress based on completed words + current word progress
-  const getPlayerProgress = () => {
-    const completedWordsCount = completedWords.length;
-    const currentWordProgress = currentWordIndex < words.length
-      ? Math.min(currentWordInput.length / words[currentWordIndex].length, 1)
-      : 0;
-    return ((completedWordsCount + currentWordProgress) / totalWords) * 100;
-  };
-
-  const playerProgress = getPlayerProgress();
+  // Calculate progress based on correct characters vs target
+  const playerProgress = (correctChars / targetCharCount) * 100;
   const wpm = startTime && timeElapsed > 0 ? (correctChars / 5) / (timeElapsed / 60) : 0;
   const accuracy = totalTypedChars > 0 ? (correctChars / totalTypedChars) * 100 : 100;
 
@@ -99,10 +93,10 @@ export default function SinglePlayerPage() {
         setTimeElapsed(prev => prev + 1);
       }, 1000);
 
-      const botSpeed = BOT_WPM / 60 / 5;
+      const botSpeed = BOT_WPM / 60 / 5; // characters per second
       botTimerRef.current = setInterval(() => {
         setBotProgress(prev => {
-          const newProgress = prev + (botSpeed / SAMPLE_TEXT.length) * 100;
+          const newProgress = prev + (botSpeed / targetCharCount) * 100;
           if (newProgress >= 100) {
             endGame('bot');
             return 100;
@@ -120,13 +114,13 @@ export default function SinglePlayerPage() {
         clearInterval(botTimerRef.current);
       }
     };
-  }, [gameState, endGame]);
+  }, [gameState, endGame, targetCharCount]);
 
   useEffect(() => {
-    if (playerProgress >= 100 && gameState === 'active') {
+    if (correctChars >= targetCharCount && gameState === 'active') {
       endGame('player');
     }
-  }, [playerProgress, gameState, endGame]);
+  }, [correctChars, targetCharCount, gameState, endGame]);
 
   const handleInputChange = (value: string) => {
     if (gameState !== 'active') return;
@@ -210,18 +204,44 @@ export default function SinglePlayerPage() {
     router.push('/');
   };
 
+  const handleSettingsApply = () => {
+    setShowSettings(false);
+    // Reset game if settings changed while playing
+    if (gameState === 'active') {
+      resetGame();
+    }
+  };
+
+  const handleTargetCharCountChange = (count: number) => {
+    setTargetCharCount(count);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-100 p-4">
       <div className="max-w-4xl mx-auto">
         <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8">
           <div className="flex justify-between items-center mb-6">
-            <h1 className="text-3xl font-bold text-gray-900">🏁 Single Player Race</h1>
-            <button
-              onClick={goHome}
-              className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors duration-200"
-            >
-              ← Back to Home
-            </button>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">🏁 Single Player Race</h1>
+              <p className="text-sm text-gray-600 mt-1">
+                Race to {targetCharCount} correct characters!
+              </p>
+            </div>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setShowSettings(true)}
+                className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors duration-200"
+                title="Race Settings"
+              >
+                ⚙️
+              </button>
+              <button
+                onClick={goHome}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors duration-200"
+              >
+                ← Back to Home
+              </button>
+            </div>
           </div>
 
           <Track
@@ -235,6 +255,21 @@ export default function SinglePlayerPage() {
             timeElapsed={timeElapsed}
             isGameActive={gameState === 'active'}
           />
+
+          <div className="bg-gray-50 rounded-lg p-4 mb-6 text-center">
+            <div className="text-lg font-semibold text-gray-800">
+              {correctChars} / {targetCharCount} characters
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+              <div
+                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                style={{ width: `${Math.min(playerProgress, 100)}%` }}
+              />
+            </div>
+            <div className="text-sm text-gray-600 mt-1">
+              {targetCharCount - correctChars} characters remaining
+            </div>
+          </div>
 
           <TypingArea
             words={words}
@@ -294,6 +329,14 @@ export default function SinglePlayerPage() {
         timeElapsed={timeElapsed}
         onRestart={resetGame}
         onHome={goHome}
+      />
+
+      <RaceSettings
+        isOpen={showSettings}
+        targetCharCount={targetCharCount}
+        onTargetCharCountChange={handleTargetCharCountChange}
+        onClose={() => setShowSettings(false)}
+        onApply={handleSettingsApply}
       />
     </div>
   );

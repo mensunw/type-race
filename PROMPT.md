@@ -1,4 +1,1 @@
-for the text box area:
-- When fixing the bug before, you introduced a new bug.
-- Letters are now being shown as red before the cursor line.
-- /Users/mensun/Desktop/Screenshot 2025-09-16 at 9.36.50 AM.png
+for the race, let's add a configuration for users to select the number of characters they have to get right in order for someone (them or the bot) to win the race. please create a new component for this.
