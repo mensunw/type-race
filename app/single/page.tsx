@@ -115,19 +115,17 @@ export default function SinglePlayerPage() {
   const handleInputChange = (value: string) => {
     if (gameState !== 'active') return;
 
-    if (value.length <= SAMPLE_TEXT.length) {
-      setUserInput(value);
-      setCurrentIndex(value.length);
+    setUserInput(value);
+    setCurrentIndex(value.length);
 
-      let correct = 0;
-      for (let i = 0; i < value.length; i++) {
-        if (value[i] === SAMPLE_TEXT[i] && !skippedChars.has(i)) {
-          correct++;
-        }
+    let correct = 0;
+    for (let i = 0; i < value.length && i < SAMPLE_TEXT.length; i++) {
+      if (value[i] === SAMPLE_TEXT[i] && !skippedChars.has(i)) {
+        correct++;
       }
-      setCorrectChars(correct);
-      setTotalTypedChars(value.length);
     }
+    setCorrectChars(correct);
+    setTotalTypedChars(value.length);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {

@@ -27,8 +27,27 @@ export default function TypingArea({
   useEffect(() => {
     if (isGameActive && inputRef.current) {
       inputRef.current.focus();
+    } else if (!isGameActive && textContainerRef.current) {
+      // Reset scroll position to top when game becomes inactive
+      // Use setTimeout to ensure DOM updates are complete
+      setTimeout(() => {
+        if (textContainerRef.current) {
+          textContainerRef.current.scrollTop = 0;
+          textContainerRef.current.scrollTo({
+            top: 0,
+            behavior: 'instant'
+          });
+        }
+      }, 0);
     }
   }, [isGameActive]);
+
+  // Also reset scroll when currentIndex resets to 0 (additional safety)
+  useEffect(() => {
+    if (currentIndex === 0 && textContainerRef.current) {
+      textContainerRef.current.scrollTop = 0;
+    }
+  }, [currentIndex]);
 
   // Auto-scroll logic when currentIndex changes
   useEffect(() => {
@@ -88,6 +107,15 @@ export default function TypingArea({
     }
 
     if (index < userInput.length) {
+      // Handle characters beyond the expected text (extra characters)
+      if (index >= text.length) {
+        return `${baseClass} text-red-600`; // Extra characters are always red
+      }
+
+      // Spaces are always highlighted black
+      if (text[index] === ' ') {
+        return `${baseClass} text-black`;
+      }
       // Check if character was skipped via spacebar
       if (skippedChars.has(index)) {
         return `${baseClass} text-gray-500`;
@@ -108,7 +136,11 @@ export default function TypingArea({
     <div className="mb-6">
       <div
         ref={textContainerRef}
-        className="relative bg-white border-2 border-gray-200 rounded-lg p-4 sm:p-6 mb-4 font-mono text-sm sm:text-lg leading-relaxed h-[6rem] sm:h-[7.2rem] overflow-y-auto break-words cursor-text"
+        className="relative bg-white border-2 border-gray-200 rounded-lg p-4 sm:p-6 mb-4 font-mono text-sm sm:text-lg leading-relaxed h-[6rem] sm:h-[7.2rem] overflow-y-auto break-words cursor-text scrollbar-hide"
+        style={{
+          scrollbarWidth: 'none', /* Firefox */
+          msOverflowStyle: 'none', /* Internet Explorer 10+ */
+        }}
         onClick={() => {
           if (isGameActive && inputRef.current) {
             inputRef.current.focus();
@@ -118,7 +150,9 @@ export default function TypingArea({
         <div className="flex flex-wrap">
           {(() => {
             const words = getWordBoundaries();
-            return text.split('').map((char, index) => {
+            const displayText = userInput.length > text.length ? userInput : text;
+
+            return displayText.split('').map((char, index) => {
               const currentWord = words.find(word => index >= word.start && index < word.end);
               const wordHasError = currentWord ? hasWordError(currentWord.start, currentWord.end) : false;
 
@@ -129,7 +163,10 @@ export default function TypingArea({
                   className={getCharacterClass(index, wordHasError)}
                   style={index === currentIndex ? { borderLeftStyle: 'solid', borderRadius: 0 } : {}}
                 >
-                  {char === ' ' ? '\u00A0' : char}
+                  {index < text.length
+                    ? (text[index] === ' ' ? '\u00A0' : text[index])
+                    : (userInput[index] === ' ' ? '\u00A0' : userInput[index])
+                  }
                 </span>
               );
             });
@@ -137,8 +174,8 @@ export default function TypingArea({
         </div>
 
         {!isGameActive && (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-50 bg-opacity-90 rounded-lg">
-            <p className="text-gray-600 text-center">
+          <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-95 rounded-lg z-10">
+            <p className="text-gray-600 text-center font-medium">
               Click &quot;Start Race&quot; to begin
             </p>
           </div>
