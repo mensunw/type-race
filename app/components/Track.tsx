@@ -28,7 +28,13 @@ export default function Track({ playerProgress, botProgress }: TrackProps) {
           className="absolute bottom-2 transition-all duration-300 ease-out"
           style={{ left: `${Math.min(botProgress, 95)}%` }}
         >
-          <div className="text-2xl transform -translate-x-1/2">🤖</div>
+          <div className="transform -translate-x-1/2 flex justify-center">
+            <img
+              src="https://optibot-assistant.optisigns.com/avatars/OptiBot"
+              alt="OptiBot"
+              className="w-6 h-6 rounded-full"
+            />
+          </div>
           <div className="text-xs font-semibold text-red-600 whitespace-nowrap transform -translate-x-1/2">
             Bot
           </div>

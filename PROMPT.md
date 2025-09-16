@@ -1,2 +1,2 @@
-There's an issue with the Track component (likely also an issue with the other components):
-- I set the difficult to "Henry" (180WPM), but the bot is going way too slow. In the screenshot, I am going at 39WPM but I am way ahead of the 180WPM bot.
+Can you change the bot to use this icon instead:
+https://optibot-assistant.optisigns.com/avatars/OptiBot
