@@ -333,7 +333,7 @@ export default function SinglePlayerPage() {
           {gameState === 'waiting' && (
             <div className="mt-6 p-4 bg-blue-50 rounded-lg text-center">
               <p className="text-blue-800">
-                💡 <strong>Tip:</strong> Start typing or click &quot;Start Race&quot; to begin!
+                💡 <strong>Tip:</strong> win
               </p>
             </div>
           )}

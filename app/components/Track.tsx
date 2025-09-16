@@ -8,15 +8,14 @@ export default function Track({ playerProgress, botProgress }: TrackProps) {
     <div className="w-full bg-gray-100 rounded-lg p-4 mb-6">
       <div className="relative h-24 bg-gradient-to-r from-green-200 to-green-400 rounded-lg border-2 border-gray-300 overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-full">
-          <div className="flex items-center justify-between h-full px-2">
-            <div className="text-2xl">🏁</div>
+          <div className="flex items-center justify-end h-full px-2">
             <div className="text-2xl">🏆</div>
           </div>
         </div>
 
         <div
           className="absolute top-2 transition-all duration-300 ease-out"
-          style={{ left: `${Math.min(playerProgress, 95)}%` }}
+          style={{ left: `${Math.max(3, Math.min(playerProgress, 95))}%` }}
         >
           <div className="text-2xl transform -translate-x-1/2 scale-x-[-1]">🏎️</div>
           <div className="text-xs font-semibold text-blue-600 whitespace-nowrap transform -translate-x-1/2">
@@ -26,7 +25,7 @@ export default function Track({ playerProgress, botProgress }: TrackProps) {
 
         <div
           className="absolute bottom-2 transition-all duration-300 ease-out"
-          style={{ left: `${Math.min(botProgress, 95)}%` }}
+          style={{ left: `${Math.max(3, Math.min(botProgress, 95))}%` }}
         >
           <div className="transform -translate-x-1/2 flex justify-center">
             <img
