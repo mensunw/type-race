@@ -18,7 +18,7 @@ export default function Track({ playerProgress, botProgress }: TrackProps) {
           className="absolute top-2 transition-all duration-300 ease-out"
           style={{ left: `${Math.min(playerProgress, 95)}%` }}
         >
-          <div className="text-2xl transform -translate-x-1/2">🏎️</div>
+          <div className="text-2xl transform -translate-x-1/2 scale-x-[-1]">🏎️</div>
           <div className="text-xs font-semibold text-blue-600 whitespace-nowrap transform -translate-x-1/2">
             You
           </div>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import Countdown from './Countdown';
 
 interface TypingAreaProps {
   words: string[];
@@ -8,9 +9,11 @@ interface TypingAreaProps {
   currentWordInput: string;
   completedWords: string[];
   isGameActive: boolean;
+  isCountdownActive: boolean;
   skippedWords: Set<number>;
   onInputChange: (value: string) => void;
   onKeyPress: (e: React.KeyboardEvent) => void;
+  onCountdownComplete: () => void;
 }
 
 export default function TypingArea({
@@ -19,9 +22,11 @@ export default function TypingArea({
   currentWordInput,
   completedWords,
   isGameActive,
+  isCountdownActive,
   skippedWords,
   onInputChange,
   onKeyPress,
+  onCountdownComplete,
 }: TypingAreaProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const textContainerRef = useRef<HTMLDivElement>(null);
@@ -133,7 +138,7 @@ export default function TypingArea({
     <div className="mb-6">
       <div
         ref={textContainerRef}
-        className="relative bg-white border-2 border-gray-200 rounded-lg p-4 sm:p-6 mb-4 font-mono text-sm sm:text-lg leading-relaxed h-[6rem] sm:h-[7.2rem] overflow-y-auto break-words cursor-text scrollbar-hide"
+        className="relative bg-white border-2 border-gray-200 rounded-lg p-4 sm:p-6 mb-4 font-mono text-sm sm:text-lg leading-relaxed h-[6rem] sm:h-[7.2rem] overflow-y-hidden break-words cursor-text scrollbar-hide"
         style={{
           scrollbarWidth: 'none', /* Firefox */
           msOverflowStyle: 'none', /* Internet Explorer 10+ */
@@ -201,12 +206,16 @@ export default function TypingArea({
           })}
         </div>
 
-        {!isGameActive && (
+        {!isGameActive && !isCountdownActive && (
           <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-95 rounded-lg z-10">
             <p className="text-gray-600 text-center font-medium">
               Click &quot;Start Race&quot; to begin
             </p>
           </div>
+        )}
+
+        {isCountdownActive && (
+          <Countdown onComplete={onCountdownComplete} />
         )}
       </div>
 

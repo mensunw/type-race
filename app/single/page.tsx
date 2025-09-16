@@ -15,7 +15,7 @@ const BOT_WPM = 45;
 export default function SinglePlayerPage() {
   const router = useRouter();
 
-  const [gameState, setGameState] = useState<'waiting' | 'active' | 'finished'>('waiting');
+  const [gameState, setGameState] = useState<'waiting' | 'countdown' | 'active' | 'finished'>('waiting');
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
   const [currentWordInput, setCurrentWordInput] = useState('');
   const [completedWords, setCompletedWords] = useState<string[]>([]);
@@ -41,8 +41,7 @@ export default function SinglePlayerPage() {
   const accuracy = totalTypedChars > 0 ? (correctChars / totalTypedChars) * 100 : 100;
 
   const startGame = useCallback(() => {
-    setGameState('active');
-    setStartTime(Date.now());
+    setGameState('countdown');
     setTimeElapsed(0);
     setCurrentWordIndex(0);
     setCurrentWordInput('');
@@ -52,6 +51,11 @@ export default function SinglePlayerPage() {
     setBotProgress(0);
     setWinner(null);
     setSkippedWords(new Set());
+  }, []);
+
+  const onCountdownComplete = useCallback(() => {
+    setGameState('active');
+    setStartTime(Date.now());
   }, []);
 
   const resetGame = useCallback(() => {
@@ -277,9 +281,11 @@ export default function SinglePlayerPage() {
             currentWordInput={currentWordInput}
             completedWords={completedWords}
             isGameActive={gameState === 'active'}
+            isCountdownActive={gameState === 'countdown'}
             skippedWords={skippedWords}
             onInputChange={handleInputChange}
             onKeyPress={handleKeyPress}
+            onCountdownComplete={onCountdownComplete}
           />
 
           <div className="flex justify-center space-x-4">
@@ -292,7 +298,7 @@ export default function SinglePlayerPage() {
               </button>
             )}
 
-            {gameState === 'active' && (
+            {(gameState === 'active' || gameState === 'countdown') && (
               <button
                 onClick={resetGame}
                 className="bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-8 rounded-lg transition-colors duration-200"
