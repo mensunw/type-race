@@ -1,3 +1,2 @@
-related to the race settings component:
-- can you blur the background instead of it being white when the user is inside this component? The previous change made it white, not blur
-- /Users/mensun/Desktop/Screenshot 2025-09-16 at 11.39.02 AM.png
+There's an issue with the Track component (likely also an issue with the other components):
+- I set the difficult to "Henry" (180WPM), but the bot is going way too slow. In the screenshot, I am going at 39WPM but I am way ahead of the 180WPM bot.

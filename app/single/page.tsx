@@ -10,7 +10,14 @@ import RaceSettings from '../components/RaceSettings';
 
 const SAMPLE_TEXT = "The quick brown fox jumps over the lazy dog. This pangram contains all letters of the alphabet and is commonly used for typing practice. Speed and accuracy are both important when learning to type efficiently. In the digital age, typing has become an essential skill for students, professionals, and everyday computer users. The ability to type quickly and accurately can significantly improve productivity and communication. Many people spend hours each day using keyboards, whether for work, education, or personal activities. Touch typing, which involves typing without looking at the keyboard, is considered the most efficient method. It allows typists to focus on the content they are creating rather than searching for individual keys. Learning proper finger placement and muscle memory takes practice and dedication. The home row keys serve as the foundation for touch typing technique. Each finger has designated keys to press, and with consistent practice, the movements become automatic. Regular typing exercises help develop speed while maintaining accuracy. It is better to type slowly and correctly than to type quickly with many errors. Proofreading and editing skills are equally important as typing speed. Many typing programs and games are available to help people improve their skills. These tools often include lessons, tests, and challenges that make learning more engaging and fun. Some focus on specific areas like number typing, special characters, or programming symbols. Setting realistic goals and tracking progress can help maintain motivation during the learning process. Professional typists and data entry specialists can achieve typing speeds of over one hundred words per minute. However, for most people, a typing speed of thirty to fifty words per minute is sufficient for daily tasks. The key is finding the right balance between speed and accuracy for your specific needs and requirements.";
 
-const BOT_WPM = 45;
+// Bot difficulties mapping
+const BOT_DIFFICULTIES = {
+  'Easy': 41,
+  'Medium': 67,
+  'Hard': 97,
+  'Very Hard': 120,
+  'Henry': 180,
+};
 
 export default function SinglePlayerPage() {
   const router = useRouter();
@@ -27,6 +34,7 @@ export default function SinglePlayerPage() {
   const [winner, setWinner] = useState<'player' | 'bot' | null>(null);
   const [skippedWords, setSkippedWords] = useState<Set<number>>(new Set());
   const [targetCharCount, setTargetCharCount] = useState(200); // Default to 200 characters
+  const [botDifficulty, setBotDifficulty] = useState('Medium'); // Default to Medium
   const [showSettings, setShowSettings] = useState(false);
 
   const timerRef = useRef<NodeJS.Timeout | undefined>(undefined);
@@ -97,10 +105,11 @@ export default function SinglePlayerPage() {
         setTimeElapsed(prev => prev + 1);
       }, 1000);
 
-      const botSpeed = BOT_WPM / 60 / 5; // characters per second
+      const currentBotWPM = BOT_DIFFICULTIES[botDifficulty as keyof typeof BOT_DIFFICULTIES];
+      const botCharsPerSecond = (currentBotWPM * 5) / 60; // characters per second (5 chars per word, 60 seconds per minute)
       botTimerRef.current = setInterval(() => {
         setBotProgress(prev => {
-          const newProgress = prev + (botSpeed / targetCharCount) * 100;
+          const newProgress = prev + (botCharsPerSecond / targetCharCount) * 100;
           if (newProgress >= 100) {
             endGame('bot');
             return 100;
@@ -118,7 +127,7 @@ export default function SinglePlayerPage() {
         clearInterval(botTimerRef.current);
       }
     };
-  }, [gameState, endGame, targetCharCount]);
+  }, [gameState, endGame, targetCharCount, botDifficulty]);
 
   useEffect(() => {
     if (correctChars >= targetCharCount && gameState === 'active') {
@@ -218,6 +227,10 @@ export default function SinglePlayerPage() {
 
   const handleTargetCharCountChange = (count: number) => {
     setTargetCharCount(count);
+  };
+
+  const handleBotDifficultyChange = (difficulty: string) => {
+    setBotDifficulty(difficulty);
   };
 
   return (
@@ -340,7 +353,9 @@ export default function SinglePlayerPage() {
       <RaceSettings
         isOpen={showSettings}
         targetCharCount={targetCharCount}
+        botDifficulty={botDifficulty}
         onTargetCharCountChange={handleTargetCharCountChange}
+        onBotDifficultyChange={handleBotDifficultyChange}
         onClose={() => setShowSettings(false)}
         onApply={handleSettingsApply}
       />

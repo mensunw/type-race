@@ -1,7 +1,9 @@
 interface RaceSettingsProps {
   isOpen: boolean;
   targetCharCount: number;
+  botDifficulty: string;
   onTargetCharCountChange: (count: number) => void;
+  onBotDifficultyChange: (difficulty: string) => void;
   onClose: () => void;
   onApply: () => void;
 }
@@ -9,7 +11,9 @@ interface RaceSettingsProps {
 export default function RaceSettings({
   isOpen,
   targetCharCount,
+  botDifficulty,
   onTargetCharCountChange,
+  onBotDifficultyChange,
   onClose,
   onApply,
 }: RaceSettingsProps) {
@@ -21,6 +25,14 @@ export default function RaceSettings({
     { name: "Medium Race", chars: 400 },
     { name: "Long Race", chars: 600 },
     { name: "Marathon", chars: 1000 },
+  ];
+
+  const botDifficulties = [
+    { name: "Easy", wpm: 41, description: "Beginner friendly" },
+    { name: "Medium", wpm: 67, description: "Average challenge" },
+    { name: "Hard", wpm: 97, description: "Expert level" },
+    { name: "Very Hard", wpm: 120, description: "Professional" },
+    { name: "Henry", wpm: 180, description: "Legendary" },
   ];
 
   const getEstimatedWords = (chars: number) => {
@@ -95,6 +107,34 @@ export default function RaceSettings({
                 >
                   <div className="font-medium">{preset.name}</div>
                   <div className="text-xs opacity-75">{preset.chars} chars</div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Bot Difficulty
+            </label>
+            <div className="space-y-2">
+              {botDifficulties.map((difficulty) => (
+                <button
+                  key={difficulty.name}
+                  onClick={() => onBotDifficultyChange(difficulty.name)}
+                  className={`w-full p-3 rounded-lg text-sm transition-colors flex justify-between items-center ${
+                    botDifficulty === difficulty.name
+                      ? 'bg-red-600 text-white'
+                      : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                  }`}
+                >
+                  <div className="text-left">
+                    <div className="font-medium">{difficulty.name}</div>
+                    <div className="text-xs opacity-75">{difficulty.description}</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-bold">{difficulty.wpm}</div>
+                    <div className="text-xs opacity-75">WPM</div>
+                  </div>
                 </button>
               ))}
             </div>
