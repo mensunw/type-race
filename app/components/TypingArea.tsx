@@ -103,7 +103,7 @@ export default function TypingArea({
         return `${baseClass} border-l-2 border-blue-500 text-gray-500`;
       } else {
         // Untyped characters
-        return `${baseClass} text-gray-500`;
+        return `${baseClass} text-gray-500`; // Untyped characters should be gray
       }
     } else if (wordIndex < completedWords.length) {
       // Completed word
@@ -112,12 +112,16 @@ export default function TypingArea({
 
       if (skippedWords.has(wordIndex)) {
         return `${baseClass} text-gray-500`; // Skipped word
-      } else if (charIndex < typedWord.length) {
-        if (charIndex < expectedWord.length && typedWord[charIndex] === expectedWord[charIndex]) {
+      } else if (charIndex < expectedWord.length) {
+        // Expected character position
+        if (charIndex < typedWord.length && typedWord[charIndex] === expectedWord[charIndex]) {
           return `${baseClass} text-black`; // Correct
         } else {
-          return `${baseClass} text-red-600`; // Incorrect
+          return `${baseClass} text-red-600`; // Missing or incorrect
         }
+      } else {
+        // Extra character position
+        return `${baseClass} text-red-600`; // Extra typed character
       }
     }
 
@@ -148,16 +152,28 @@ export default function TypingArea({
             // Determine what to display for this word
             let displayWord = expectedWord;
             if (isCurrentWord) {
-              // Show current word input (may be longer than expected)
-              displayWord = currentWordInput.length > expectedWord.length
-                ? currentWordInput
-                : expectedWord;
+              // Show all characters: expected word + any extra typed characters
+              const maxLength = Math.max(expectedWord.length, currentWordInput.length);
+              displayWord = '';
+              for (let i = 0; i < maxLength; i++) {
+                if (i < expectedWord.length) {
+                  displayWord += expectedWord[i];
+                } else {
+                  displayWord += currentWordInput[i];
+                }
+              }
             } else if (isCompletedWord) {
-              // Show completed word (may be longer than expected)
+              // Show all characters: expected word + any extra typed characters
               const typedWord = completedWords[wordIndex];
-              displayWord = typedWord.length > expectedWord.length
-                ? typedWord
-                : expectedWord;
+              const maxLength = Math.max(expectedWord.length, typedWord.length);
+              displayWord = '';
+              for (let i = 0; i < maxLength; i++) {
+                if (i < expectedWord.length) {
+                  displayWord += expectedWord[i];
+                } else {
+                  displayWord += typedWord[i];
+                }
+              }
             }
 
             return (
