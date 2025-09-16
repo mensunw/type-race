@@ -1,1 +1,1 @@
-i need a document (handeoff.md) to pass this work to another developer. make sure you include everything that you have done
+can you document all changes made to CHANGELOG.md as well
