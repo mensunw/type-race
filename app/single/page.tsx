@@ -15,20 +15,34 @@ export default function SinglePlayerPage() {
   const router = useRouter();
 
   const [gameState, setGameState] = useState<'waiting' | 'active' | 'finished'>('waiting');
-  const [userInput, setUserInput] = useState('');
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [currentWordIndex, setCurrentWordIndex] = useState(0);
+  const [currentWordInput, setCurrentWordInput] = useState('');
+  const [completedWords, setCompletedWords] = useState<string[]>([]);
   const [startTime, setStartTime] = useState<number | null>(null);
   const [timeElapsed, setTimeElapsed] = useState(0);
   const [correctChars, setCorrectChars] = useState(0);
   const [totalTypedChars, setTotalTypedChars] = useState(0);
   const [botProgress, setBotProgress] = useState(0);
   const [winner, setWinner] = useState<'player' | 'bot' | null>(null);
-  const [skippedChars, setSkippedChars] = useState<Set<number>>(new Set());
+  const [skippedWords, setSkippedWords] = useState<Set<number>>(new Set());
 
   const timerRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const botTimerRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
-  const playerProgress = (correctChars / SAMPLE_TEXT.length) * 100;
+  // Split text into words for word-based typing
+  const words = SAMPLE_TEXT.split(' ');
+  const totalWords = words.length;
+
+  // Calculate progress based on completed words + current word progress
+  const getPlayerProgress = () => {
+    const completedWordsCount = completedWords.length;
+    const currentWordProgress = currentWordIndex < words.length
+      ? Math.min(currentWordInput.length / words[currentWordIndex].length, 1)
+      : 0;
+    return ((completedWordsCount + currentWordProgress) / totalWords) * 100;
+  };
+
+  const playerProgress = getPlayerProgress();
   const wpm = startTime && timeElapsed > 0 ? (correctChars / 5) / (timeElapsed / 60) : 0;
   const accuracy = totalTypedChars > 0 ? (correctChars / totalTypedChars) * 100 : 100;
 
@@ -36,26 +50,28 @@ export default function SinglePlayerPage() {
     setGameState('active');
     setStartTime(Date.now());
     setTimeElapsed(0);
-    setUserInput('');
-    setCurrentIndex(0);
+    setCurrentWordIndex(0);
+    setCurrentWordInput('');
+    setCompletedWords([]);
     setCorrectChars(0);
     setTotalTypedChars(0);
     setBotProgress(0);
     setWinner(null);
-    setSkippedChars(new Set());
+    setSkippedWords(new Set());
   }, []);
 
   const resetGame = useCallback(() => {
     setGameState('waiting');
-    setUserInput('');
-    setCurrentIndex(0);
+    setCurrentWordIndex(0);
+    setCurrentWordInput('');
+    setCompletedWords([]);
     setCorrectChars(0);
     setTotalTypedChars(0);
     setBotProgress(0);
     setWinner(null);
     setTimeElapsed(0);
     setStartTime(null);
-    setSkippedChars(new Set());
+    setSkippedWords(new Set());
 
     if (timerRef.current) {
       clearInterval(timerRef.current);
@@ -115,17 +131,46 @@ export default function SinglePlayerPage() {
   const handleInputChange = (value: string) => {
     if (gameState !== 'active') return;
 
-    setUserInput(value);
-    setCurrentIndex(value.length);
+    // Extract just the current word being typed (remove any spaces)
+    const currentInput = value.replace(/\s/g, '');
+    setCurrentWordInput(currentInput);
 
-    let correct = 0;
-    for (let i = 0; i < value.length && i < SAMPLE_TEXT.length; i++) {
-      if (value[i] === SAMPLE_TEXT[i] && !skippedChars.has(i)) {
-        correct++;
+    // Calculate stats
+    let totalCorrect = 0;
+    let totalTyped = 0;
+
+    // Count correct chars from completed words
+    for (let i = 0; i < completedWords.length; i++) {
+      const expectedWord = words[i] || '';
+      const typedWord = completedWords[i];
+      totalTyped += typedWord.length + 1; // +1 for space
+
+      if (!skippedWords.has(i)) {
+        for (let j = 0; j < Math.min(expectedWord.length, typedWord.length); j++) {
+          if (expectedWord[j] === typedWord[j]) {
+            totalCorrect++;
+          }
+        }
+        if (expectedWord === typedWord) {
+          totalCorrect++; // +1 for correct space
+        }
       }
     }
-    setCorrectChars(correct);
-    setTotalTypedChars(value.length);
+
+    // Count correct chars from current word
+    if (currentWordIndex < words.length) {
+      const expectedWord = words[currentWordIndex];
+      totalTyped += currentInput.length;
+
+      for (let i = 0; i < Math.min(expectedWord.length, currentInput.length); i++) {
+        if (expectedWord[i] === currentInput[i]) {
+          totalCorrect++;
+        }
+      }
+    }
+
+    setCorrectChars(totalCorrect);
+    setTotalTypedChars(totalTyped);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -137,88 +182,27 @@ export default function SinglePlayerPage() {
     if (gameState === 'active' && e.key === ' ') {
       e.preventDefault();
 
-      // Don't allow consecutive spaces
-      if (userInput.length > 0 && userInput[userInput.length - 1] === ' ') {
-        return;
+      // Complete current word and move to next
+      if (currentWordIndex < words.length) {
+        setCompletedWords([...completedWords, currentWordInput]);
+        setCurrentWordInput('');
+        setCurrentWordIndex(currentWordIndex + 1);
       }
-
-      // Find the next word boundary (next space or end of text)
-      let nextSpaceIndex = SAMPLE_TEXT.indexOf(' ', currentIndex);
-      if (nextSpaceIndex === -1) {
-        // No more spaces, go to end of text
-        nextSpaceIndex = SAMPLE_TEXT.length;
-      } else {
-        // Include the space
-        nextSpaceIndex += 1;
-      }
-
-      // Preserve existing user input and add the skipped portion
-      const skippedPortion = SAMPLE_TEXT.substring(currentIndex, nextSpaceIndex);
-      const newInput = userInput + skippedPortion;
-      setUserInput(newInput);
-      setCurrentIndex(newInput.length);
-
-      // Mark characters from current position to next space as skipped
-      const newSkippedChars = new Set(skippedChars);
-      for (let i = currentIndex; i < nextSpaceIndex; i++) {
-        newSkippedChars.add(i);
-      }
-      setSkippedChars(newSkippedChars);
-
-      // Update correct chars and total typed chars
-      // Only count characters that were actually typed correctly (not skipped)
-      let correct = 0;
-      for (let i = 0; i < newInput.length; i++) {
-        if (newInput[i] === SAMPLE_TEXT[i] && !newSkippedChars.has(i)) {
-          correct++;
-        }
-      }
-      setCorrectChars(correct);
-      setTotalTypedChars(newInput.length);
     }
 
     if (gameState === 'active' && e.key === 'Backspace') {
       e.preventDefault();
 
-      if (userInput.length === 0) {
-        return; // Nothing to delete
+      if (currentWordInput.length > 0) {
+        // Remove character from current word
+        setCurrentWordInput(currentWordInput.slice(0, -1));
+      } else if (completedWords.length > 0) {
+        // Go back to previous word
+        const lastWord = completedWords[completedWords.length - 1];
+        setCompletedWords(completedWords.slice(0, -1));
+        setCurrentWordInput(lastWord);
+        setCurrentWordIndex(Math.max(0, currentWordIndex - 1));
       }
-
-      // Find the first skipped character from the end moving backwards
-      let targetIndex = currentIndex - 1;
-
-      // If we're currently at a skipped character, find the first skipped character in the current sequence
-      if (skippedChars.has(targetIndex)) {
-        while (targetIndex > 0 && skippedChars.has(targetIndex)) {
-          targetIndex--;
-        }
-        targetIndex++; // Move to the first skipped character
-      } else {
-        // Normal backspace - just go back one character
-        targetIndex = currentIndex - 1;
-      }
-
-      // Update user input and position
-      const newInput = userInput.substring(0, targetIndex);
-      setUserInput(newInput);
-      setCurrentIndex(newInput.length);
-
-      // Update skipped characters - remove any that are now beyond our position
-      const newSkippedChars = new Set(skippedChars);
-      for (let i = targetIndex; i < userInput.length; i++) {
-        newSkippedChars.delete(i);
-      }
-      setSkippedChars(newSkippedChars);
-
-      // Update correct chars count
-      let correct = 0;
-      for (let i = 0; i < newInput.length; i++) {
-        if (newInput[i] === SAMPLE_TEXT[i] && !newSkippedChars.has(i)) {
-          correct++;
-        }
-      }
-      setCorrectChars(correct);
-      setTotalTypedChars(newInput.length);
     }
   };
 
@@ -253,11 +237,12 @@ export default function SinglePlayerPage() {
           />
 
           <TypingArea
-            text={SAMPLE_TEXT}
-            userInput={userInput}
-            currentIndex={currentIndex}
+            words={words}
+            currentWordIndex={currentWordIndex}
+            currentWordInput={currentWordInput}
+            completedWords={completedWords}
             isGameActive={gameState === 'active'}
-            skippedChars={skippedChars}
+            skippedWords={skippedWords}
             onInputChange={handleInputChange}
             onKeyPress={handleKeyPress}
           />

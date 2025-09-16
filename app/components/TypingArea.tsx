@@ -3,21 +3,23 @@
 import { useEffect, useRef } from 'react';
 
 interface TypingAreaProps {
-  text: string;
-  userInput: string;
-  currentIndex: number;
+  words: string[];
+  currentWordIndex: number;
+  currentWordInput: string;
+  completedWords: string[];
   isGameActive: boolean;
-  skippedChars: Set<number>;
+  skippedWords: Set<number>;
   onInputChange: (value: string) => void;
   onKeyPress: (e: React.KeyboardEvent) => void;
 }
 
 export default function TypingArea({
-  text,
-  userInput,
-  currentIndex,
+  words,
+  currentWordIndex,
+  currentWordInput,
+  completedWords,
   isGameActive,
-  skippedChars,
+  skippedWords,
   onInputChange,
   onKeyPress,
 }: TypingAreaProps) {
@@ -42,93 +44,84 @@ export default function TypingArea({
     }
   }, [isGameActive]);
 
-  // Also reset scroll when currentIndex resets to 0 (additional safety)
+  // Also reset scroll when currentWordIndex resets to 0 (additional safety)
   useEffect(() => {
-    if (currentIndex === 0 && textContainerRef.current) {
+    if (currentWordIndex === 0 && textContainerRef.current) {
       textContainerRef.current.scrollTop = 0;
     }
-  }, [currentIndex]);
+  }, [currentWordIndex]);
 
-  // Auto-scroll logic when currentIndex changes
+  // Auto-scroll logic when currentWordIndex changes
   useEffect(() => {
     if (textContainerRef.current && isGameActive) {
       const container = textContainerRef.current;
+      const currentWordElement = container.querySelector(`[data-word-index="${currentWordIndex}"]`);
 
-      // Find the current character element
-      const currentCharElement = container.querySelector(`[data-char-index="${currentIndex}"]`);
-
-      if (currentCharElement) {
-        // Use scrollIntoView to ensure the current character is visible
-        // with some padding to show upcoming text
-        currentCharElement.scrollIntoView({
+      if (currentWordElement) {
+        currentWordElement.scrollIntoView({
           behavior: 'smooth',
-          block: 'center', // Keep cursor in center of view
+          block: 'center',
           inline: 'nearest'
         });
       }
     }
-  }, [currentIndex, isGameActive]);
+  }, [currentWordIndex, isGameActive]);
 
-  const getWordBoundaries = () => {
-    const words = [];
-    let currentWord = { start: 0, end: 0 };
-
-    for (let i = 0; i <= text.length; i++) {
-      if (i === text.length || text[i] === ' ') {
-        currentWord.end = i;
-        words.push(currentWord);
-        currentWord = { start: i + 1, end: i + 1 };
-      }
+  const hasWordError = (wordIndex: number) => {
+    // Only show error if word is completed and has errors
+    if (wordIndex >= completedWords.length) {
+      return false; // Word not completed yet
     }
 
-    return words;
+    const expectedWord = words[wordIndex] || '';
+    const typedWord = completedWords[wordIndex];
+
+    return skippedWords.has(wordIndex) || expectedWord !== typedWord;
   };
 
-  const hasWordError = (wordStart: number, wordEnd: number) => {
-    // Only show error underline if user has moved past this word
-    if (currentIndex <= wordEnd) {
-      return false; // User is still on or before this word
-    }
-
-    // Check if the completed word has any errors
-    for (let i = wordStart; i < wordEnd; i++) {
-      if (skippedChars.has(i) || (i < userInput.length && userInput[i] !== text[i])) {
-        return true;
-      }
-    }
-    return false;
-  };
-
-  const getCharacterClass = (index: number, wordHasError: boolean) => {
+  const getCharacterClass = (wordIndex: number, charIndex: number, char: string, isCurrentWord: boolean) => {
     let baseClass = 'px-0.5 py-0.5 transition-colors duration-150';
 
-    if (wordHasError) {
+    // Add underline for completed words with errors
+    if (hasWordError(wordIndex)) {
       baseClass += ' underline decoration-red-500 decoration-2 decoration-solid';
     }
 
-    if (index < userInput.length) {
-      // Handle characters beyond the expected text (extra characters)
-      if (index >= text.length) {
-        return `${baseClass} text-red-600`; // Extra characters are always red
-      }
+    if (isCurrentWord) {
+      // Current word being typed
+      const expectedWord = words[wordIndex] || '';
 
-      // Spaces are always highlighted black
-      if (text[index] === ' ') {
-        return `${baseClass} text-black`;
-      }
-      // Check if character was skipped via spacebar
-      if (skippedChars.has(index)) {
+      if (charIndex < currentWordInput.length) {
+        // Character has been typed
+        if (charIndex < expectedWord.length && currentWordInput[charIndex] === expectedWord[charIndex]) {
+          return `${baseClass} text-black`; // Correct
+        } else {
+          return `${baseClass} text-red-600`; // Incorrect or extra
+        }
+      } else if (charIndex === currentWordInput.length) {
+        // Cursor position
+        return `${baseClass} border-l-2 border-blue-500 text-gray-500`;
+      } else {
+        // Untyped characters
         return `${baseClass} text-gray-500`;
       }
-      // Normal typing: black for correct, red for incorrect
-      if (userInput[index] === text[index]) {
-        return `${baseClass} text-black`;
-      } else {
-        return `${baseClass} text-red-600`;
+    } else if (wordIndex < completedWords.length) {
+      // Completed word
+      const expectedWord = words[wordIndex] || '';
+      const typedWord = completedWords[wordIndex];
+
+      if (skippedWords.has(wordIndex)) {
+        return `${baseClass} text-gray-500`; // Skipped word
+      } else if (charIndex < typedWord.length) {
+        if (charIndex < expectedWord.length && typedWord[charIndex] === expectedWord[charIndex]) {
+          return `${baseClass} text-black`; // Correct
+        } else {
+          return `${baseClass} text-red-600`; // Incorrect
+        }
       }
-    } else if (index === currentIndex) {
-      return `${baseClass} border-l-2 border-blue-500 text-gray-500`;
     }
+
+    // Future words or spaces
     return `${baseClass} text-gray-500`;
   };
 
@@ -148,29 +141,48 @@ export default function TypingArea({
         }}
       >
         <div className="flex flex-wrap">
-          {(() => {
-            const words = getWordBoundaries();
-            const displayText = userInput.length > text.length ? userInput : text;
+          {words.map((expectedWord, wordIndex) => {
+            const isCurrentWord = wordIndex === currentWordIndex;
+            const isCompletedWord = wordIndex < completedWords.length;
 
-            return displayText.split('').map((char, index) => {
-              const currentWord = words.find(word => index >= word.start && index < word.end);
-              const wordHasError = currentWord ? hasWordError(currentWord.start, currentWord.end) : false;
+            // Determine what to display for this word
+            let displayWord = expectedWord;
+            if (isCurrentWord) {
+              // Show current word input (may be longer than expected)
+              displayWord = currentWordInput.length > expectedWord.length
+                ? currentWordInput
+                : expectedWord;
+            } else if (isCompletedWord) {
+              // Show completed word (may be longer than expected)
+              const typedWord = completedWords[wordIndex];
+              displayWord = typedWord.length > expectedWord.length
+                ? typedWord
+                : expectedWord;
+            }
 
-              return (
-                <span
-                  key={index}
-                  data-char-index={index}
-                  className={getCharacterClass(index, wordHasError)}
-                  style={index === currentIndex ? { borderLeftStyle: 'solid', borderRadius: 0 } : {}}
-                >
-                  {index < text.length
-                    ? (text[index] === ' ' ? '\u00A0' : text[index])
-                    : (userInput[index] === ' ' ? '\u00A0' : userInput[index])
-                  }
-                </span>
-              );
-            });
-          })()}
+            return (
+              <span key={wordIndex} data-word-index={wordIndex}>
+                {displayWord.split('').map((char, charIndex) => (
+                  <span
+                    key={`${wordIndex}-${charIndex}`}
+                    className={getCharacterClass(wordIndex, charIndex, char, isCurrentWord)}
+                  >
+                    {char}
+                  </span>
+                ))}
+                {/* Add cursor at end of current word if needed */}
+                {isCurrentWord && currentWordInput.length === displayWord.length && (
+                  <span className="border-l-2 border-blue-500 text-gray-500"></span>
+                )}
+                {/* Add space after each word except the last */}
+                {wordIndex < words.length - 1 && (
+                  <span className="px-0.5 py-0.5 text-black">
+                    {'\u00A0'}
+                  </span>
+                )}
+              </span>
+            );
+          })}
         </div>
 
         {!isGameActive && (
@@ -185,7 +197,7 @@ export default function TypingArea({
       <input
         ref={inputRef}
         type="text"
-        value={userInput}
+        value={currentWordInput}
         onChange={(e) => onInputChange(e.target.value)}
         onKeyDown={onKeyPress}
         disabled={!isGameActive}
