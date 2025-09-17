@@ -1,18 +1,18 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
+import { useState, useEffect, useCallback, useRef, Suspense, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
 // Import existing single-player components
 import TypingArea from '@/app/components/TypingArea';
 import Stats from '@/app/components/Stats';
-import Countdown from '@/app/components/Countdown';
 import EndGameModal from '@/app/components/EndGameModal';
 
 // Import new multiplayer components
 import MultiplayerLobby, { RoomCreation } from '@/app/components/MultiplayerLobby';
 import MultiplayerTrack, { MultiplayerLeaderboard } from '@/app/components/MultiplayerTrack';
+import MultiplayerCountdown from '@/app/components/MultiplayerCountdown';
 
 // Import multiplayer hook
 import { useMultiplayer } from '@/hooks/useMultiplayer';
@@ -58,9 +58,9 @@ function MultiplayerPageContent() {
         try {
           await multiplayerActions.connect(roomId);
           setIsConnecting(false);
-        } catch (error: any) {
+        } catch (error: unknown) {
           setIsConnecting(false);
-          setConnectionError(`Failed to connect: ${error.message}`);
+          setConnectionError(`Failed to connect: ${error instanceof Error ? error.message : 'Unknown error'}`);
           setGamePhase('room_selection');
         }
       };
@@ -123,19 +123,140 @@ function MultiplayerPageContent() {
     window.history.pushState({}, '', '/multiplayer');
   }, [multiplayerActions]);
 
-  // Typing handlers
-  const handleTyping = useCallback((input: string, wordIndex: number) => {
-    if (multiplayerState.gameState === 'active') {
-      multiplayerActions.handleTyping(input, wordIndex);
+  const textWords = multiplayerState.textContent.split(' ').filter(word => word.length > 0);
+
+  // Local typing state (like single player)
+  const [localCurrentWordIndex, setLocalCurrentWordIndex] = useState(0);
+  const [localCurrentWordInput, setLocalCurrentWordInput] = useState('');
+  const [localCompletedWords, setLocalCompletedWords] = useState<string[]>([]);
+  const [localCorrectChars, setLocalCorrectChars] = useState(0);
+  const [localTotalTypedChars, setLocalTotalTypedChars] = useState(0);
+
+  // Sync local state with multiplayer state when game starts/resets
+  useEffect(() => {
+    if (multiplayerState.gameState === 'active' || multiplayerState.gameState === 'countdown') {
+      setLocalCurrentWordIndex(multiplayerState.currentWordIndex);
+      setLocalCurrentWordInput(multiplayerState.currentWordInput);
+      setLocalCompletedWords(multiplayerState.completedWords);
+      setLocalCorrectChars(0);
+      setLocalTotalTypedChars(0);
     }
-  }, [multiplayerState.gameState, multiplayerActions]);
+  }, [multiplayerState.gameState, multiplayerState.currentWordIndex, multiplayerState.currentWordInput, multiplayerState.completedWords]);
+
+  // Calculate local progress and stats (like single player)
+  const calculateLocalStats = useCallback(() => {
+    let totalCorrect = 0;
+    let totalTyped = 0;
+
+    // Count correct chars from completed words
+    for (let i = 0; i < localCompletedWords.length; i++) {
+      const expectedWord = textWords[i] || '';
+      const typedWord = localCompletedWords[i];
+      totalTyped += typedWord.length + 1; // +1 for space
+
+      // Count correct characters in this word
+      const correctInWord = Math.min(typedWord.length, expectedWord.length);
+      for (let j = 0; j < correctInWord; j++) {
+        if (typedWord[j] === expectedWord[j]) {
+          totalCorrect++;
+        }
+      }
+
+      // Add space if word was correct
+      if (typedWord === expectedWord) {
+        totalCorrect++;
+      }
+    }
+
+    // Count correct chars in current word being typed
+    if (localCurrentWordIndex < textWords.length) {
+      const expectedWord = textWords[localCurrentWordIndex];
+      totalTyped += localCurrentWordInput.length;
+
+      const correctInCurrentWord = Math.min(localCurrentWordInput.length, expectedWord.length);
+      for (let j = 0; j < correctInCurrentWord; j++) {
+        if (localCurrentWordInput[j] === expectedWord[j]) {
+          totalCorrect++;
+        }
+      }
+    }
+
+    setLocalCorrectChars(totalCorrect);
+    setLocalTotalTypedChars(totalTyped);
+  }, [localCompletedWords, localCurrentWordIndex, localCurrentWordInput, textWords]);
+
+  // Update stats when local typing state changes
+  useEffect(() => {
+    if (multiplayerState.gameState === 'active') {
+      calculateLocalStats();
+    }
+  }, [multiplayerState.gameState, calculateLocalStats]);
+
+  // Periodic sync as backup (every 3 seconds during active game)
+  useEffect(() => {
+    if (multiplayerState.gameState !== 'active') return;
+
+    const syncInterval = setInterval(() => {
+      // Send current local progress to keep multiplayer in sync
+      multiplayerActions.handleTyping(localCurrentWordInput, localCurrentWordIndex);
+    }, 3000); // Sync every 3 seconds instead of every keystroke
+
+    return () => clearInterval(syncInterval);
+  }, [multiplayerState.gameState, localCurrentWordInput, localCurrentWordIndex, multiplayerActions]);
+
+  // Typing handlers (like single player)
+  const handleInputChange = useCallback((value: string) => {
+    if (multiplayerState.gameState !== 'active') return;
+
+    // Extract just the current word being typed (remove any spaces)
+    const currentInput = value.replace(/\s/g, '');
+
+    // Update local state immediately (no network delay)
+    setLocalCurrentWordInput(currentInput);
+  }, [multiplayerState.gameState]);
+
+  const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
+    if (multiplayerState.gameState === 'active' && e.key === ' ') {
+      e.preventDefault();
+
+      // Complete current word and move to next (like single player)
+      if (localCurrentWordIndex < textWords.length) {
+        const newCompletedWords = [...localCompletedWords, localCurrentWordInput];
+        const newWordIndex = localCurrentWordIndex + 1;
+
+        // Update local state immediately
+        setLocalCompletedWords(newCompletedWords);
+        setLocalCurrentWordInput('');
+        setLocalCurrentWordIndex(newWordIndex);
+
+        // Send word completion to server (only on spacebar)
+        multiplayerActions.handleTyping(localCurrentWordInput, newWordIndex);
+      }
+    }
+  }, [multiplayerState.gameState, localCurrentWordIndex, localCurrentWordInput, localCompletedWords, textWords.length, multiplayerActions]);
+
+  // Calculate local WPM and accuracy (like single player)
+  const localWpm = useMemo(() => {
+    if (!multiplayerState.startTime || multiplayerState.gameState !== 'active') return 0;
+    const elapsedMinutes = (Date.now() - multiplayerState.startTime) / 60000;
+    const words = localCorrectChars / 5; // 5 characters = 1 word
+    return elapsedMinutes > 0 ? Math.round(words / elapsedMinutes) : 0;
+  }, [localCorrectChars, multiplayerState.startTime, multiplayerState.gameState]);
+
+  const localAccuracy = useMemo(() => {
+    return localTotalTypedChars > 0 ? Math.round((localCorrectChars / localTotalTypedChars) * 100) : 100;
+  }, [localCorrectChars, localTotalTypedChars]);
 
   const handleGameRestart = useCallback(() => {
     multiplayerActions.resetGame();
     setGamePhase('lobby');
+    // Reset local state
+    setLocalCurrentWordIndex(0);
+    setLocalCurrentWordInput('');
+    setLocalCompletedWords([]);
+    setLocalCorrectChars(0);
+    setLocalTotalTypedChars(0);
   }, [multiplayerActions]);
-
-  const textWords = multiplayerState.textContent.split(' ').filter(word => word.length > 0);
 
   // Render different phases
   const renderContent = () => {
@@ -235,8 +356,9 @@ function MultiplayerPageContent() {
                     currentPlayerId={multiplayerState.currentPlayer?.id}
                   />
 
-                  <Countdown
-                    onComplete={() => {}} // Handled by server
+                  <MultiplayerCountdown
+                    countdownPhase={multiplayerState.countdownPhase}
+                    countdownTimeRemaining={multiplayerState.countdownTimeRemaining}
                   />
                 </div>
 
@@ -247,8 +369,8 @@ function MultiplayerPageContent() {
                   />
 
                   <Stats
-                    wpm={multiplayerState.wpm}
-                    accuracy={multiplayerState.accuracy}
+                    wpm={localWpm}
+                    accuracy={localAccuracy}
                     timeElapsed={Math.floor(multiplayerState.elapsedTime / 1000)}
                     isGameActive={multiplayerState.gameState === 'active'}
                   />
@@ -278,22 +400,22 @@ function MultiplayerPageContent() {
 
                   <TypingArea
                     words={textWords}
-                    currentWordIndex={multiplayerState.currentWordIndex}
-                    currentWordInput={multiplayerState.currentWordInput}
-                    completedWords={multiplayerState.completedWords}
+                    currentWordIndex={localCurrentWordIndex}
+                    currentWordInput={localCurrentWordInput}
+                    completedWords={localCompletedWords}
                     isGameActive={multiplayerState.gameState === 'active'}
                     isCountdownActive={false}
                     skippedWords={new Set<number>()}
-                    onInputChange={(value: string) => handleTyping(value, multiplayerState.currentWordIndex)}
-                    onKeyPress={() => {}}
+                    onInputChange={handleInputChange}
+                    onKeyPress={handleKeyPress}
                     onCountdownComplete={() => {}}
                   />
                 </div>
 
                 <div className="space-y-4">
                   <Stats
-                    wpm={multiplayerState.wpm}
-                    accuracy={multiplayerState.accuracy}
+                    wpm={localWpm}
+                    accuracy={localAccuracy}
                     timeElapsed={Math.floor(multiplayerState.elapsedTime / 1000)}
                     isGameActive={multiplayerState.gameState === 'active'}
                   />
@@ -309,10 +431,10 @@ function MultiplayerPageContent() {
                         Your Progress
                       </div>
                       <div className="text-2xl font-bold text-blue-400">
-                        {Math.round((multiplayerState.correctChars / multiplayerState.targetCharCount) * 100)}%
+                        {Math.round((localCorrectChars / multiplayerState.targetCharCount) * 100)}%
                       </div>
                       <div className="text-sm text-gray-300">
-                        {multiplayerState.correctChars} / {multiplayerState.targetCharCount} chars
+                        {localCorrectChars} / {multiplayerState.targetCharCount} chars
                       </div>
                     </div>
                   </div>
@@ -354,8 +476,8 @@ function MultiplayerPageContent() {
 
                 <div className="space-y-4">
                   <Stats
-                    wpm={multiplayerState.wpm}
-                    accuracy={multiplayerState.accuracy}
+                    wpm={localWpm}
+                    accuracy={localAccuracy}
                     timeElapsed={Math.floor(multiplayerState.elapsedTime / 1000)}
                     isGameActive={multiplayerState.gameState === 'active'}
                   />

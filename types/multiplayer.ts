@@ -63,6 +63,7 @@ export type GameMessage =
       type: 'countdown_sync';
       phase: number; // 3, 2, 1, 0 (go)
       serverTime: number;
+      timestamp: number;
     }
   | {
       type: 'typing_progress';

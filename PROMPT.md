@@ -1,1 +1,1 @@
-can you document all changes made to CHANGELOG.md as well
+The fact that the code is syncing every keystroke to other users for multiplayer is causing a lot of issues, and is also pointless. Can we change the multiplayer typing area to be more like the single player one? 

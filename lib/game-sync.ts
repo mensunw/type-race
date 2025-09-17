@@ -134,16 +134,11 @@ export class GameSynchronizer {
   ): { phase: number; timeRemaining: number } {
     this.updateClockOffset(serverTimestamp);
 
-    // Each countdown phase lasts 1 second
-    const currentServerTime = this.getServerTime();
-    const phaseStartTime = serverTimestamp - (3 - phase) * 1000;
-    const timeInCurrentPhase = currentServerTime - phaseStartTime;
+    // Use the server's phase directly - server manages the countdown timing
+    // Each phase lasts 1 second, so approximate time remaining
+    const timeRemaining = 1000;
 
-    // Calculate actual phase and remaining time
-    const actualPhase = Math.max(0, 3 - Math.floor((currentServerTime - serverTimestamp + 3000) / 1000));
-    const timeRemaining = Math.max(0, 1000 - (timeInCurrentPhase % 1000));
-
-    return { phase: actualPhase, timeRemaining };
+    return { phase: phase, timeRemaining };
   }
 
   // Update game state from server
