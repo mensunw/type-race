@@ -17,13 +17,14 @@ TypeRace is a web-based typing game built with **Next.js 15**, **TypeScript**, a
 ```
 app/
 ├── components/
-│   ├── Track.tsx           # Racing track visualization with player/bot cars
+│   ├── Track.tsx           # Racing track with OptiBot avatar and flipped car
 │   ├── Stats.tsx           # Real-time WPM, accuracy, and time display
-│   ├── TypingArea.tsx      # Word-based text display and input handling
+│   ├── TypingArea.tsx      # Word-based typing with countdown overlay
 │   ├── EndGameModal.tsx    # Game completion modal with results
-│   └── RaceSettings.tsx    # Configurable race settings modal
+│   ├── RaceSettings.tsx    # Settings modal with bot difficulty selection
+│   └── Countdown.tsx       # 3-2-1-Go countdown with traffic lights
 ├── single/
-│   └── page.tsx           # Single player game with complete logic
+│   └── page.tsx           # Single player game with bot difficulty system
 ├── multiplayer/
 │   └── page.tsx           # Placeholder for future multiplayer
 ├── page.tsx               # Landing page with navigation
@@ -61,10 +62,17 @@ app/
 - **Reset Handling**: Properly resets scroll position on game reset
 
 ### 5. **Racing Mechanics**
-- **Real-time Progress**: Visual track with player car (🏎️) and bot car (🤖)
-- **Bot Opponent**: Configurable 45 WPM bot with consistent performance
+- **Real-time Progress**: Visual track with flipped player car (🏎️) and OptiBot avatar
+- **Bot Difficulty System**: 5 difficulty levels from Easy (41 WPM) to Henry (180 WPM)
 - **Statistics Tracking**: Live WPM, accuracy, and elapsed time
 - **Win/Loss Detection**: Automatic game ending with celebration modal
+- **Race Start Countdown**: 3-2-1-Go countdown with traffic light indicators
+
+### 6. **Game Start Enhancement**
+- **Countdown Component**: Animated countdown with traffic lights (red-red-yellow-green)
+- **Visual Indicators**: Color-coded countdown numbers and encouraging text
+- **Smooth Transitions**: Automatic progression from countdown to active gameplay
+- **Manual Scrolling Disabled**: Prevents user interference with auto-scrolling text
 
 ## 🗂️ Data Flow & State Management
 
@@ -77,11 +85,12 @@ const [completedWords, setCompletedWords] = useState<string[]>([]);
 
 // Race configuration
 const [targetCharCount, setTargetCharCount] = useState(200);
+const [botDifficulty, setBotDifficulty] = useState('Medium');
 const [showSettings, setShowSettings] = useState(false);
 
 // Game progress
 const [correctChars, setCorrectChars] = useState(0);
-const [gameState, setGameState] = useState<'waiting' | 'active' | 'finished'>('waiting');
+const [gameState, setGameState] = useState<'waiting' | 'countdown' | 'active' | 'finished'>('waiting');
 ```
 
 ### Key Algorithms
@@ -89,6 +98,15 @@ const [gameState, setGameState] = useState<'waiting' | 'active' | 'finished'>('w
 #### Progress Calculation
 ```typescript
 const playerProgress = (correctChars / targetCharCount) * 100;
+```
+
+#### Bot Speed Calculation
+```typescript
+const BOT_DIFFICULTIES = {
+  'Easy': 41, 'Medium': 67, 'Hard': 97, 'Very Hard': 120, 'Henry': 180
+};
+const currentBotWPM = BOT_DIFFICULTIES[botDifficulty];
+const botCharsPerSecond = (currentBotWPM * 5) / 60; // 5 chars per word, 60 seconds per minute
 ```
 
 #### Win Condition
@@ -119,17 +137,23 @@ if (isCurrentWord && charIndex < currentWordInput.length) {
    - Clean UI with navigation buttons
 
 2. **Game Setup** (`app/single/page.tsx`)
-   - Default 200 character target
-   - Settings button (⚙️) to configure race length
-   - "Start Race" button to begin
+   - Default 200 character target with Medium bot difficulty
+   - Settings button (⚙️) to configure race length and bot difficulty
+   - "Start Race" button triggers countdown sequence
 
-3. **Active Gameplay**
+3. **Race Start Sequence**
+   - 3-2-1-Go countdown with traffic light colors
+   - Red lights for "3" and "2", yellow for "1", green for "Go!"
+   - Automatic transition to active gameplay after countdown
+
+4. **Active Gameplay**
    - Word-by-word typing with real-time feedback
    - Spacebar advances words, backspace can return to previous
    - Live stats and progress tracking
-   - Bot races simultaneously
+   - Bot races simultaneously with selected difficulty
+   - Manual scrolling disabled to prevent interference
 
-4. **Game Completion**
+5. **Game Completion**
    - Winner determined by first to reach target character count
    - End game modal with final statistics
    - Options to restart or return home
@@ -142,6 +166,16 @@ if (isCurrentWord && charIndex < currentWordInput.length) {
 - ✅ **Scroll Reset**: Fixed text not returning to top on game reset
 - ✅ **Auto-scroll**: Implemented proper text scrolling for 3-line view
 - ✅ **Extra Character Handling**: Users can now type beyond word boundaries
+- ✅ **Car Direction**: Player car now faces the correct direction (right)
+- ✅ **Vehicle Positioning**: Cars and bot start positions adjusted to prevent cutoff
+- ✅ **Bot Speed Calculation**: Fixed incorrect bot WPM calculation (was 25x too slow)
+- ✅ **Modal Background**: Race settings modal now uses blur instead of solid overlay
+
+### Recent Enhancements
+- ✅ **Countdown System**: Added 3-2-1-Go countdown with traffic light indicators
+- ✅ **Bot Difficulty Levels**: Five difficulty levels from Easy (41 WPM) to Henry (180 WPM)
+- ✅ **OptiBot Avatar**: Replaced generic robot emoji with custom OptiBot image
+- ✅ **UI Improvements**: Blurred modal backgrounds and better visual positioning
 
 ### Future Considerations
 - **Performance**: Large text handling is optimized but could be improved for 1000+ character races

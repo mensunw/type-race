@@ -5,6 +5,39 @@ All notable changes to the TypeRace project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2025-09-17
+
+### Added
+- **Countdown Component** (`app/components/Countdown.tsx`): 3-2-1-Go countdown with traffic light system
+- **Bot Difficulty Selection**: Five difficulty levels in race settings
+  - Easy: 41 WPM (Beginner friendly)
+  - Medium: 67 WPM (Average challenge)
+  - Hard: 97 WPM (Expert level)
+  - Very Hard: 120 WPM (Professional)
+  - Henry: 180 WPM (Legendary)
+- **OptiBot Avatar Integration**: Custom bot avatar image replacing generic robot emoji
+- **Traffic Light Countdown**: Color-coded countdown sequence (red-red-yellow-green)
+
+### Changed
+- **Game State Machine**: Added 'countdown' state between 'waiting' and 'active'
+- **Car Orientation**: Player car now faces the correct direction (flipped horizontally)
+- **Modal Background**: Race settings modal uses blur effect instead of solid black overlay
+- **Bot Positioning**: Improved starting positions to prevent image cutoff on track edges
+- **Manual Scrolling**: Disabled user scrolling in typing area to prevent interference
+- **Track Layout**: Removed starting flag, keeping only finish line trophy
+
+### Fixed
+- **Critical Bot Speed Bug**: Fixed bot WPM calculation that was 25x too slow
+- **Vehicle Visibility**: Cars and bot now start at 3% position instead of 0% to prevent cutoff
+- **Countdown Sizing**: Adjusted countdown text size to fit properly within typing area bounds
+- **Modal Blur Effect**: Corrected blur implementation for proper background effect
+
+### Technical Improvements
+- **State Management**: Enhanced bot difficulty state handling with proper dependencies
+- **Performance**: Optimized bot speed calculations with correct WPM-to-characters-per-second conversion
+- **Component Architecture**: Clean separation of countdown logic from typing area
+- **Type Safety**: Proper TypeScript typing for bot difficulty mappings
+
 ## [1.0.0] - 2025-09-16
 
 ### Added
@@ -14,7 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Multiplayer Placeholder** (`app/multiplayer/page.tsx`): Coming soon page with planned features
 
 #### Core Game Components
-- **Track Component** (`app/components/Track.tsx`): Visual racing track with player car (<Î) and bot car (>)
+- **Track Component** (`app/components/Track.tsx`): Visual racing track with player car (<ï¿½) and bot car (>)
 - **Stats Component** (`app/components/Stats.tsx`): Real-time WPM, accuracy, and elapsed time display
 - **TypingArea Component** (`app/components/TypingArea.tsx`): Word-based text display with character-by-character feedback
 - **EndGameModal Component** (`app/components/EndGameModal.tsx`): Game completion modal with statistics and restart options
@@ -74,7 +107,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### UI/UX Enhancements
 - **Gradient Backgrounds**: Modern blue-to-indigo gradients for visual appeal
-- **Settings Integration**: Gear icon (™) for easy access to race configuration
+- **Settings Integration**: Gear icon (ï¿½) for easy access to race configuration
 - **Progress Indicators**: Character count display with visual progress bar
 - **Dynamic Headers**: Updates to show current race target (e.g., "Race to 200 correct characters!")
 - **Modal Interfaces**: Polished settings and end game modals with proper transitions
