@@ -6,7 +6,10 @@
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "server": "tsx server/websocket-server.ts",
+    "server:dev": "tsx --watch server/websocket-server.ts",
+    "dev:full": "concurrently \"npm run dev\" \"npm run server:dev\" --names \"nextjs,websocket\" --prefix-colors \"cyan,magenta\""
   },
   "dependencies": {
     "react": "19.1.0",
@@ -26,6 +29,8 @@
     "tailwindcss": "^4",
     "eslint": "^9",
     "eslint-config-next": "15.5.3",
-    "@eslint/eslintrc": "^3"
+    "@eslint/eslintrc": "^3",
+    "tsx": "^4.19.1",
+    "concurrently": "^9.1.0"
   }
 }
