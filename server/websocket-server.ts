@@ -321,7 +321,8 @@ export class TypeRaceWebSocketServer {
       this.broadcastToRoom(room.id, {
         type: 'countdown_sync',
         phase,
-        serverTime: Date.now()
+        serverTime: Date.now(),
+        timestamp: Date.now()
       });
 
       phase--;

@@ -49,7 +49,7 @@ export interface MultiplayerState {
 
 export interface MultiplayerActions {
   // Connection management
-  connect: () => Promise<void>;
+  connect: (roomId?: string) => Promise<void>;
   disconnect: () => void;
 
   // Game actions
@@ -240,14 +240,20 @@ export const useMultiplayer = ({
   }, []);
 
   // Connect to WebSocket
-  const connect = useCallback(async () => {
+  const connect = useCallback(async (connectRoomId?: string) => {
+    const targetRoomId = connectRoomId || roomId;
+
+    if (!targetRoomId) {
+      throw new Error('No room ID provided for connection');
+    }
+
     if (!wsRef.current) {
       initializeServices();
     }
 
     if (wsRef.current) {
       try {
-        await wsRef.current.connect(roomId, playerIdRef.current);
+        await wsRef.current.connect(targetRoomId, playerIdRef.current);
       } catch (error) {
         console.error('Failed to connect to multiplayer:', error);
         throw error;

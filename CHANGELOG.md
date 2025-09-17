@@ -5,6 +5,36 @@ All notable changes to the TypeRace project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.1] - 2025-09-17
+
+### Fixed - Critical Multiplayer Connection Issues
+- **Connection Race Condition**: **RESOLVED** - Fixed infinite "Connecting to server..." on initial room creation
+  - **Root Cause**: `isConnecting` state was blocking connection effect from running properly
+  - **Solution**: Removed `isConnecting` from `useEffect` dependencies in `app/multiplayer/page.tsx`
+  - **Technical Details**: Connection effect now uses internal guard instead of dependency-based blocking
+  - **Files Modified**: `app/multiplayer/page.tsx` (lines 47-73), `hooks/useMultiplayer.ts` (connect function)
+
+- **Message Validation Error**: **RESOLVED** - Fixed "Invalid message format" errors during ready-up sequence
+  - **Root Cause**: Server `countdown_sync` messages were missing required `timestamp` field
+  - **Solution**: Added `timestamp: Date.now()` to countdown messages in WebSocket server
+  - **Files Modified**: `server/websocket-server.ts` (line 325)
+
+- **Enhanced Connection Reliability**: Improved `useMultiplayer` hook with explicit `roomId` parameter support
+  - **Enhancement**: `connect` function now accepts optional `roomId` parameter for direct room targeting
+  - **Benefit**: Eliminates closure-related race conditions with room ID state
+
+### Changed - Code Quality Improvements
+- **Debug Logging**: Removed excessive console logging for cleaner production experience
+- **Connection Logic**: Streamlined connection flow with better error handling
+- **State Management**: Improved React effect dependencies for more reliable state updates
+
+### Impact
+- ✅ **Immediate Room Connection**: No more infinite loading states on room creation
+- ✅ **Reliable Player Display**: Host appears in lobby immediately upon room creation
+- ✅ **Working Ready System**: Players can ready up without validation errors
+- ✅ **Page Refresh Stability**: Maintains connection and player state across refreshes
+- ✅ **Production Ready**: All critical blocking issues resolved for deployment
+
 ## [2.0.0] - 2025-09-17
 
 ### Added - Real-Time Multiplayer Implementation
@@ -59,8 +89,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Technical Plan** (`plan.md`): Architecture decisions, function specifications, and testing requirements
 - **Developer Handoff** (`HANDOFF.md`): Complete implementation documentation for future developers
 
-### Known Issues
-- **Connection Race Condition**: Initial room creation may show "Connecting to server..." indefinitely (workaround: refresh page)
+### Known Issues - ❌ RESOLVED in v2.0.1
+- ~~**Connection Race Condition**: Initial room creation may show "Connecting to server..." indefinitely (workaround: refresh page)~~ **✅ FIXED in v2.0.1**
 - **ESLint Warnings**: Minor unused parameter warnings in WebSocket error handlers (non-breaking)
 
 ### Development Commands

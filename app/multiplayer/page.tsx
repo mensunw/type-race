@@ -46,21 +46,31 @@ function MultiplayerPageContent() {
 
   // Connect to room when roomId is set and we're in lobby phase
   useEffect(() => {
-    if (roomId && gamePhase === 'lobby' && !multiplayerState.isConnected && !isConnecting) {
-      setIsConnecting(true);
+    // Only connect if we have a roomId, we're in lobby phase, and not already connected
+    if (roomId && gamePhase === 'lobby' && !multiplayerState.isConnected) {
       setConnectionError(null);
 
-      multiplayerActions.connect()
-        .then(() => {
+      // Create an async function to handle the connection
+      const connectToRoom = async () => {
+        if (isConnecting) return;
+
+        setIsConnecting(true);
+        try {
+          await multiplayerActions.connect(roomId);
           setIsConnecting(false);
-        })
-        .catch((error) => {
+        } catch (error: any) {
           setIsConnecting(false);
           setConnectionError(`Failed to connect: ${error.message}`);
           setGamePhase('room_selection');
-        });
+        }
+      };
+
+      // Small delay to ensure all state updates are processed
+      const connectTimer = setTimeout(connectToRoom, 50);
+
+      return () => clearTimeout(connectTimer);
     }
-  }, [roomId, gamePhase, multiplayerState.isConnected, isConnecting, multiplayerActions]);
+  }, [roomId, gamePhase, multiplayerState.isConnected, multiplayerActions]);
 
   // Handle game state changes
   useEffect(() => {
@@ -86,7 +96,6 @@ function MultiplayerPageContent() {
 
   // Room management handlers
   const handleCreateRoom = useCallback(async (newRoomId: string) => {
-    setIsConnecting(true);
     setConnectionError(null);
     setRoomId(newRoomId);
     setGamePhase('lobby');
@@ -96,7 +105,6 @@ function MultiplayerPageContent() {
   }, []);
 
   const handleJoinRoom = useCallback(async (targetRoomId: string) => {
-    setIsConnecting(true);
     setConnectionError(null);
     setRoomId(targetRoomId);
     setGamePhase('lobby');
