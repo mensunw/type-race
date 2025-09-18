@@ -117,16 +117,16 @@ export default function TypingArea({
 
       if (skippedWords.has(wordIndex)) {
         return `${baseClass} text-gray-500`; // Skipped word
-      } else if (charIndex < expectedWord.length) {
-        // Expected character position
-        if (charIndex < typedWord.length && typedWord[charIndex] === expectedWord[charIndex]) {
+      } else if (charIndex < typedWord.length) {
+        // Character that was typed
+        if (charIndex < expectedWord.length && typedWord[charIndex] === expectedWord[charIndex]) {
           return `${baseClass} text-black`; // Correct
         } else {
-          return `${baseClass} text-red-600`; // Missing or incorrect
+          return `${baseClass} text-red-600`; // Incorrect or extra character
         }
       } else {
-        // Extra character position
-        return `${baseClass} text-red-600`; // Extra typed character
+        // Character that wasn't typed (missing from expected word)
+        return `${baseClass} text-gray-500`; // Missing character
       }
     }
 
@@ -168,7 +168,7 @@ export default function TypingArea({
                 }
               }
             } else if (isCompletedWord) {
-              // Show all characters: expected word + any extra typed characters
+              // For completed words, show expected word + any extra typed characters
               const typedWord = completedWords[wordIndex];
               const maxLength = Math.max(expectedWord.length, typedWord.length);
               displayWord = '';

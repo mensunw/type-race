@@ -6,22 +6,31 @@
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "server": "tsx server/websocket-server.ts",
+    "server:dev": "tsx --watch server/websocket-server.ts",
+    "dev:full": "concurrently \"npm run dev\" \"npm run server:dev\" --names \"nextjs,websocket\" --prefix-colors \"cyan,magenta\""
   },
   "dependencies": {
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "next": "15.5.3"
+    "next": "15.5.3",
+    "ws": "^8.18.0",
+    "uuid": "^10.0.0"
   },
   "devDependencies": {
     "typescript": "^5",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/ws": "^8.5.10",
+    "@types/uuid": "^10.0.0",
     "@tailwindcss/postcss": "^4",
     "tailwindcss": "^4",
     "eslint": "^9",
     "eslint-config-next": "15.5.3",
-    "@eslint/eslintrc": "^3"
+    "@eslint/eslintrc": "^3",
+    "tsx": "^4.19.1",
+    "concurrently": "^9.1.0"
   }
 }
