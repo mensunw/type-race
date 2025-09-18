@@ -73,7 +73,7 @@ function MultiplayerPageContent() {
 
       return () => clearTimeout(connectTimer);
     }
-  }, [roomId, gamePhase, multiplayerState.isConnected, multiplayerActions]);
+  }, [roomId, gamePhase, multiplayerState.isConnected, multiplayerActions, isConnecting]);
 
   // Handle game state changes
   useEffect(() => {
@@ -229,7 +229,7 @@ function MultiplayerPageContent() {
         setLocalCurrentWordIndex(Math.max(0, localCurrentWordIndex - 1));
       }
     }
-  }, [multiplayerState.gameState, localCurrentWordIndex, localCompletedWords, localCurrentWordInput, textWords.length, multiplayerActions]);
+  }, [multiplayerState.gameState, localCurrentWordIndex, localCompletedWords, localCurrentWordInput, textWords.length]);
 
   // Calculate local WPM and accuracy (like single player)
   const localWpm = useMemo(() => {
@@ -263,26 +263,28 @@ function MultiplayerPageContent() {
     };
   }, [localCurrentWordInput, localCurrentWordIndex, localCorrectChars, localWpm, localAccuracy]);
 
+  // Periodic sync callback for smooth car movement
+  const syncCurrentProgress = useCallback(() => {
+    const current = syncDataRef.current;
+    multiplayerActions.handleTyping(current.localCurrentWordInput, current.localCurrentWordIndex, {
+      correctChars: current.localCorrectChars,
+      wpm: current.localWpm,
+      accuracy: current.localAccuracy
+    });
+  }, [multiplayerActions]);
+
   // Periodic sync for smooth car movement (every 500ms during active game)
   useEffect(() => {
     if (multiplayerState.gameState !== 'active') {
       return;
     }
 
-    const syncInterval = setInterval(() => {
-      // Get current values from ref to ensure we send latest progress
-      const current = syncDataRef.current;
-      multiplayerActions.handleTyping(current.localCurrentWordInput, current.localCurrentWordIndex, {
-        correctChars: current.localCorrectChars,
-        wpm: current.localWpm,
-        accuracy: current.localAccuracy
-      });
-    }, 500); // Sync every 500ms for smooth car movement
+    const syncInterval = setInterval(syncCurrentProgress, 500);
 
     return () => {
       clearInterval(syncInterval);
     };
-  }, [multiplayerState.gameState, multiplayerActions.handleTyping]);
+  }, [multiplayerState.gameState, syncCurrentProgress]);
 
   // Win condition check (like single-player) - only trigger once
   useEffect(() => {
@@ -297,7 +299,7 @@ function MultiplayerPageContent() {
         accuracy: localAccuracy
       });
     }
-  }, [hasWon, localCorrectChars, multiplayerState.targetCharCount, multiplayerState.gameState, localCurrentWordInput, localCurrentWordIndex, multiplayerActions]);
+  }, [hasWon, localCorrectChars, multiplayerState.targetCharCount, multiplayerState.gameState, localCurrentWordInput, localCurrentWordIndex, localWpm, localAccuracy, multiplayerActions]);
 
   const handleGameRestart = useCallback(() => {
     multiplayerActions.resetGame();

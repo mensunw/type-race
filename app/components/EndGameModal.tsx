@@ -22,7 +22,6 @@ export default function EndGameModal({
   onHome,
   mode = 'single',
   winnerName,
-  currentPlayerName,
 }: EndGameModalProps) {
   if (!isOpen) return null;
 
