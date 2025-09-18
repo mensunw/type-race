@@ -1,1 +1,1 @@
-I want to deploy this onto Vercel. I can deploy the frontend
+I want to deploy this onto Vercel. I can deploy the frontend, but how do i deploy the backend onto vercel as well?
