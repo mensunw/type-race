@@ -1,3 +1,4 @@
-Issue with multiplayer game:
-- When player 1 presses "spacebar", the player 1 car in player 2's screen moves backward, then forward
-- remove any irrelevant debug statements
+Issue with multiplayer game win/lose screen:
+- When a player X wins, it should say that player X won
+- When a player Y loses, it should say that player Y lost
+- Should not say "bot" or have any bot images/emojis

@@ -206,8 +206,8 @@ function MultiplayerPageContent() {
         setLocalCurrentWordInput('');
         setLocalCurrentWordIndex(localCurrentWordIndex + 1);
 
-        // Send word completion to server
-        multiplayerActions.handleTyping(localCurrentWordInput, localCurrentWordIndex + 1);
+        // Don't send immediate message - let periodic sync handle word completion
+        // This avoids the backward-forward car movement issue
       }
     }
 
