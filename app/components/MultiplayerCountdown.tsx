@@ -5,7 +5,7 @@ interface MultiplayerCountdownProps {
   countdownTimeRemaining: number;
 }
 
-export default function MultiplayerCountdown({ countdownPhase, countdownTimeRemaining }: MultiplayerCountdownProps) {
+export default function MultiplayerCountdown({ countdownPhase }: MultiplayerCountdownProps) {
   if (countdownPhase === null) {
     return null;
   }

@@ -76,7 +76,7 @@ export default function MultiplayerTrack({
   };
 
   // Get player car emoji based on position
-  const getPlayerCar = (position: PlayerPosition, index: number): string => {
+  const getPlayerCar = (position: PlayerPosition): string => {
     if (position.isCurrentPlayer) return '🏎️';
     if (position.player.isFinished) return '🏁';
     return '🚗';
@@ -143,7 +143,7 @@ export default function MultiplayerTrack({
           {/* Player car */}
           <div className="relative flex items-center">
             <div className="text-2xl transform scale-x-[-1]">
-              {getPlayerCar(position, index)}
+              {getPlayerCar(position)}
             </div>
 
             {/* Player info tooltip */}

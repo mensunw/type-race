@@ -1,3 +1,5 @@
+import Image from 'next/image';
+
 interface TrackProps {
   playerProgress: number;
   botProgress: number;
@@ -28,10 +30,12 @@ export default function Track({ playerProgress, botProgress }: TrackProps) {
           style={{ left: `${Math.max(3, Math.min(botProgress, 95))}%` }}
         >
           <div className="transform -translate-x-1/2 flex justify-center">
-            <img
+            <Image
               src="https://optibot-assistant.optisigns.com/avatars/OptiBot"
               alt="OptiBot"
-              className="w-6 h-6 rounded-full"
+              width={24}
+              height={24}
+              className="rounded-full"
             />
           </div>
           <div className="text-xs font-semibold text-red-600 whitespace-nowrap transform -translate-x-1/2">

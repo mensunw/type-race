@@ -54,7 +54,7 @@ export interface MultiplayerActions {
 
   // Game actions
   setReady: (isReady: boolean) => void;
-  handleTyping: (input: string, wordIndex: number) => void;
+  handleTyping: (input: string, wordIndex: number, overrideStats?: { correctChars: number, wpm: number, accuracy: number }) => void;
   resetGame: () => void;
 
   // Utility
@@ -316,7 +316,7 @@ export const useMultiplayer = ({
 
     // Send to server - use override stats if provided, otherwise use predicted
     const messageToSend = {
-      type: 'typing_progress',
+      type: 'typing_progress' as const,
       playerId: playerIdRef.current,
       correctChars: overrideStats?.correctChars ?? predictedState.correctChars,
       currentWordIndex: predictedState.currentWordIndex,

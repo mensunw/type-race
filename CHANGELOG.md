@@ -5,6 +5,65 @@ All notable changes to the TypeRace project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.0] - 2025-09-18
+
+### Fixed - Critical Multiplayer Synchronization Issues
+
+#### Car Position Synchronization
+- **RESOLVED**: Fixed multiplayer cars not moving properly on other players' screens
+  - **Root Cause 1**: Typo in WebSocket client - `wmp` instead of `wpm` in typing progress messages
+  - **Root Cause 2**: Periodic sync useEffect using stale closure values instead of current progress
+  - **Solution**: Fixed typo in `lib/websocket.ts:235` and implemented `syncDataRef` pattern for current values
+  - **Files Modified**: `lib/websocket.ts`, `app/multiplayer/page.tsx` (lines 153-192)
+
+#### Spacebar Backward Movement Bug
+- **RESOLVED**: Fixed cars moving backward then forward when players pressed spacebar
+  - **Root Cause**: Conflicting messages between immediate word completion and periodic sync
+  - **Solution**: Removed immediate word completion message, letting periodic sync handle all updates
+  - **Files Modified**: `app/multiplayer/page.tsx` (handleKeyPress function, lines 209-211)
+
+#### Win/Lose Screen Messaging
+- **RESOLVED**: Fixed multiplayer end game modal showing bot references instead of player names
+  - **Root Cause**: `EndGameModal` component designed for single-player only
+  - **Solution**: Added `mode`, `winnerName`, and `currentPlayerName` props with multiplayer-specific messaging
+  - **New Features**:
+    - Shows actual winner's name (e.g., "Player 2 Wins!")
+    - Proper finish line emoji (🏁) instead of bot emoji (🤖)
+    - Context-appropriate messages ("Player X finished first. Better luck next time!")
+  - **Files Modified**: `app/components/EndGameModal.tsx`, `app/multiplayer/page.tsx`
+
+#### Spacebar Input Validation
+- **RESOLVED**: Fixed ability to advance words without typing anything
+  - **Root Cause**: Spacebar could advance to next word even with empty input
+  - **Solution**: Added `currentWordInput.length === 0` check to prevent empty word advancement
+  - **Scope**: Applied to both single-player and multiplayer for consistency
+  - **Files Modified**: `app/multiplayer/page.tsx`, `app/single/page.tsx`
+
+### Changed - Code Quality Improvements
+- **Debug Cleanup**: Removed excessive console logging statements (`🆔 Generated:`, `🎮 PAGE:`)
+- **Error Messages**: Improved clarity of multiplayer win/lose scenarios
+- **Type Safety**: Enhanced EndGameModal interface with optional multiplayer props
+- **Consistency**: Unified spacebar behavior between single-player and multiplayer modes
+
+### Enhanced - User Experience
+- **Real-time Car Movement**: Other players' cars now move smoothly every 500ms during active gameplay
+- **Proper Win Notifications**: Clear indication of which player won with their actual name
+- **Input Validation**: Players must type something before spacebar advances words
+- **Clean Console**: Removed development debug logs for better production experience
+
+### Technical Details
+- **Synchronization Strategy**: Uses `syncDataRef` pattern to capture current values in periodic sync intervals
+- **Message Frequency**: Maintains 500ms periodic sync for smooth multiplayer experience
+- **State Management**: Local state updates immediately, server state syncs periodically
+- **Backward Compatibility**: Single-player `EndGameModal` usage remains unchanged (defaults to single-player mode)
+
+### Impact
+- ✅ **Smooth Multiplayer Racing**: Other players' cars move in real-time without visual glitches
+- ✅ **Proper Win Screens**: Shows actual player names and appropriate messaging
+- ✅ **Better Input Control**: Prevents accidental word skipping with empty spacebar presses
+- ✅ **Clean Development**: Reduced console noise for better debugging experience
+- ✅ **Production Ready**: All critical multiplayer synchronization issues resolved
+
 ## [2.1.0] - 2025-09-18
 
 ### Added - Performance & User Experience Improvements

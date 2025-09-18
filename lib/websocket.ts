@@ -55,11 +55,11 @@ export class WebSocketService {
         };
 
         this.ws.onclose = (event) => {
-          this.handleConnectionClose(event.code, event.reason);
+          this.handleConnectionClose(event.code);
         };
 
         this.ws.onerror = (error) => {
-          this.handleConnectionError(error);
+          this.handleConnectionError();
           reject(error);
         };
 
@@ -153,7 +153,7 @@ export class WebSocketService {
     this.processMessageQueue();
   }
 
-  private handleConnectionClose(code: number, _reason: string): void {
+  private handleConnectionClose(code: number): void {
     this.clearIntervals();
 
     this.connectionState = {
@@ -171,7 +171,7 @@ export class WebSocketService {
     this.attemptReconnect();
   }
 
-  private handleConnectionError(_error: Event): void {
+  private handleConnectionError(): void {
     this.eventHandlers.onError?.('Connection error', 'NETWORK_ERROR');
   }
 
@@ -261,7 +261,7 @@ export class WebSocketService {
           console.warn('Unhandled message type:', message);
       }
 
-    } catch (error) {
+    } catch {
       this.eventHandlers.onError?.('Failed to parse message', 'INVALID_MESSAGE');
     }
   }
@@ -313,7 +313,7 @@ export class WebSocketService {
 
     this.sendMessage(heartbeatMessage).catch(() => {
       // Heartbeat failed, connection might be dead
-      this.handleConnectionClose(1006, 'Heartbeat failed');
+      this.handleConnectionClose(1006);
     });
   }
 
@@ -324,7 +324,7 @@ export class WebSocketService {
     this.messageQueue = [];
 
     queuedMessages.forEach(message => {
-      this.sendMessage(message).catch(_error => {
+      this.sendMessage(message).catch(() => {
         console.warn('Failed to send queued message:', message.type);
         // Re-queue failed messages
         this.messageQueue.push(message);
