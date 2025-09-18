@@ -281,7 +281,7 @@ export const useMultiplayer = ({
   }, [state.isConnected]);
 
   // Handle typing input with client-side prediction
-  const handleTyping = useCallback((input: string, wordIndex: number) => {
+  const handleTyping = useCallback((input: string, wordIndex: number, overrideStats?: { correctChars: number, wpm: number, accuracy: number }) => {
     if (!syncRef.current || !wsRef.current || state.gameState !== 'active') return;
 
     // Client-side prediction for immediate feedback
@@ -310,18 +310,20 @@ export const useMultiplayer = ({
       accuracy
     }));
 
-    // Send to server
-    wsRef.current.sendMessage({
+    // Send to server - use override stats if provided, otherwise use predicted
+    const messageToSend = {
       type: 'typing_progress',
       playerId: playerIdRef.current,
-      correctChars: predictedState.correctChars,
+      correctChars: overrideStats?.correctChars ?? predictedState.correctChars,
       currentWordIndex: predictedState.currentWordIndex,
       completedWords: predictedState.completedWords,
       currentWordInput: predictedState.currentWordInput,
-      wpm,
-      accuracy,
+      wpm: overrideStats?.wpm ?? wpm,
+      accuracy: overrideStats?.accuracy ?? accuracy,
       timestamp: Date.now()
-    });
+    };
+
+    wsRef.current.sendMessage(messageToSend);
 
   }, [state.gameState, state.startTime]);
 

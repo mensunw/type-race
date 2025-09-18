@@ -213,6 +213,7 @@ export class TypeRaceWebSocketServer {
     player.wpm = message.wpm;
     player.accuracy = message.accuracy;
 
+
     // Check if player finished
     if (player.correctChars >= room.targetCharCount && !player.isFinished) {
       player.isFinished = true;

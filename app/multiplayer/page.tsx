@@ -131,6 +131,7 @@ function MultiplayerPageContent() {
   const [localCompletedWords, setLocalCompletedWords] = useState<string[]>([]);
   const [localCorrectChars, setLocalCorrectChars] = useState(0);
   const [localTotalTypedChars, setLocalTotalTypedChars] = useState(0);
+  const [hasWon, setHasWon] = useState(false);
 
   // Reset local state when game starts (but don't sync with server state during gameplay)
   useEffect(() => {
@@ -141,20 +142,25 @@ function MultiplayerPageContent() {
       setLocalCompletedWords([]);
       setLocalCorrectChars(0);
       setLocalTotalTypedChars(0);
+      setHasWon(false); // Reset win flag
     }
   }, [multiplayerState.gameState]); // Only depend on gameState, not the typing data
 
   // Periodic sync as backup (every 3 seconds during active game)
   useEffect(() => {
-    if (multiplayerState.gameState !== 'active') return;
+    if (multiplayerState.gameState !== 'active') {
+      return;
+    }
 
     const syncInterval = setInterval(() => {
       // Send current local progress to keep multiplayer in sync
       multiplayerActions.handleTyping(localCurrentWordInput, localCurrentWordIndex);
     }, 3000); // Sync every 3 seconds instead of every keystroke
 
-    return () => clearInterval(syncInterval);
-  }, [multiplayerState.gameState, localCurrentWordInput, localCurrentWordIndex, multiplayerActions]);
+    return () => {
+      clearInterval(syncInterval);
+    };
+  }, [multiplayerState.gameState]); // Remove problematic dependencies
 
   // EXACT COPY of single-player typing logic
   const handleInputChange = useCallback((value: string) => {
@@ -244,6 +250,21 @@ function MultiplayerPageContent() {
   const localAccuracy = useMemo(() => {
     return localTotalTypedChars > 0 ? Math.round((localCorrectChars / localTotalTypedChars) * 100) : 100;
   }, [localCorrectChars, localTotalTypedChars]);
+
+  // Win condition check (like single-player) - only trigger once
+  useEffect(() => {
+    if (!hasWon && localCorrectChars >= multiplayerState.targetCharCount && multiplayerState.gameState === 'active') {
+      // Player has won! Set flag to prevent multiple triggers
+      setHasWon(true);
+
+      // Send final progress to server to trigger win condition
+      multiplayerActions.handleTyping(localCurrentWordInput, localCurrentWordIndex, {
+        correctChars: localCorrectChars,
+        wpm: localWpm,
+        accuracy: localAccuracy
+      });
+    }
+  }, [hasWon, localCorrectChars, multiplayerState.targetCharCount, multiplayerState.gameState, localCurrentWordInput, localCurrentWordIndex, multiplayerActions]);
 
   const handleGameRestart = useCallback(() => {
     multiplayerActions.resetGame();
