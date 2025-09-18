@@ -8,6 +8,11 @@ interface MultiplayerTrackProps {
   targetCharCount: number;
   currentPlayerId?: string;
   showFinishLine?: boolean;
+  localPlayerProgress?: {
+    correctChars: number;
+    wpm: number;
+    accuracy: number;
+  };
 }
 
 interface PlayerPosition {
@@ -21,32 +26,46 @@ export default function MultiplayerTrack({
   players,
   targetCharCount,
   currentPlayerId,
-  showFinishLine = true
+  showFinishLine = true,
+  localPlayerProgress
 }: MultiplayerTrackProps) {
   const trackRef = useRef<HTMLDivElement>(null);
 
   // Calculate player positions with lane assignment
   const playerPositions = useMemo((): PlayerPosition[] => {
-    const positions = players.map((player) => ({
-      player,
-      progress: targetCharCount > 0 ? (player.correctChars / targetCharCount) * 100 : 0,
-      lane: 0,
-      isCurrentPlayer: player.id === currentPlayerId
-    }));
+    const positions = players.map((player) => {
+      const isCurrentPlayer = player.id === currentPlayerId;
 
-    // Sort by progress for lane assignment (leader gets top lane)
-    positions.sort((a, b) => b.progress - a.progress);
+      // Use local progress for current player, server progress for others
+      const correctChars = isCurrentPlayer && localPlayerProgress
+        ? localPlayerProgress.correctChars
+        : player.correctChars;
 
-    // Assign lanes with collision avoidance
+      return {
+        player: isCurrentPlayer && localPlayerProgress
+          ? { ...player, correctChars, wpm: localPlayerProgress.wpm, accuracy: localPlayerProgress.accuracy }
+          : player,
+        progress: targetCharCount > 0 ? (correctChars / targetCharCount) * 100 : 0,
+        lane: 0,
+        isCurrentPlayer
+      };
+    });
+
+    // Assign stable lanes based on player order (not progress-based)
     const maxLanes = Math.min(4, players.length);
 
-    positions.forEach((pos, index) => {
+    // Create a stable player order based on player ID for consistent lane assignment
+    const sortedPlayers = [...positions].sort((a, b) => a.player.id.localeCompare(b.player.id));
+
+    positions.forEach((pos) => {
+      // Find this player's stable index in the sorted list
+      const stableIndex = sortedPlayers.findIndex(p => p.player.id === pos.player.id);
       // Distribute players evenly across available lanes
-      pos.lane = (index * (100 / maxLanes)) + (100 / (maxLanes * 2)) - 10;
+      pos.lane = ((stableIndex + 1) / (maxLanes + 1)) * 100;
     });
 
     return positions;
-  }, [players, targetCharCount, currentPlayerId]);
+  }, [players, targetCharCount, currentPlayerId, localPlayerProgress]);
 
   // Get player color based on position
   const getPlayerColor = (position: PlayerPosition): string => {
@@ -57,7 +76,7 @@ export default function MultiplayerTrack({
   };
 
   // Get player car emoji based on position
-  const getPlayerCar = (position: PlayerPosition): string => {
+  const getPlayerCar = (position: PlayerPosition, index: number): string => {
     if (position.isCurrentPlayer) return '🏎️';
     if (position.player.isFinished) return '🏁';
     return '🚗';
@@ -124,7 +143,7 @@ export default function MultiplayerTrack({
           {/* Player car */}
           <div className="relative flex items-center">
             <div className="text-2xl transform scale-x-[-1]">
-              {getPlayerCar(position)}
+              {getPlayerCar(position, index)}
             </div>
 
             {/* Player info tooltip */}

@@ -60,6 +60,7 @@ export interface MultiplayerActions {
   // Utility
   getPlayerProgress: (playerId: string) => number;
   getPlayerList: () => SerializedPlayer[];
+  getCurrentPlayerId: () => string;
   isGameWaiting: () => boolean;
   isGameActive: () => boolean;
   isGameFinished: () => boolean;
@@ -74,7 +75,10 @@ export const useMultiplayer = ({
   // Core refs
   const wsRef = useRef<WebSocketService | null>(null);
   const syncRef = useRef<GameSynchronizer | null>(null);
-  const playerIdRef = useRef<string>(generatePlayerId());
+  const playerIdRef = useRef<string>((() => {
+    const id = generatePlayerId();
+    return id;
+  })());
   const textWordsRef = useRef<string[]>([]);
 
   // State
@@ -355,6 +359,11 @@ export const useMultiplayer = ({
     return Array.from(state.players.values());
   }, [state.players]);
 
+  // Get current player ID (local instance)
+  const getCurrentPlayerId = useCallback((): string => {
+    return playerIdRef.current;
+  }, []);
+
   // Game state helpers
   const isGameWaiting = useCallback(() => state.gameState === 'waiting', [state.gameState]);
   const isGameActive = useCallback(() => state.gameState === 'active', [state.gameState]);
@@ -380,6 +389,7 @@ export const useMultiplayer = ({
     resetGame,
     getPlayerProgress,
     getPlayerList,
+    getCurrentPlayerId,
     isGameWaiting,
     isGameActive,
     isGameFinished

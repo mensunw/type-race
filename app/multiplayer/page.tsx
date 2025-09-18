@@ -44,6 +44,9 @@ function MultiplayerPageContent() {
     autoConnect: false
   });
 
+  // Get local player ID for debugging
+  const localPlayerId = multiplayerActions.getCurrentPlayerId();
+
   // Connect to room when roomId is set and we're in lobby phase
   useEffect(() => {
     // Only connect if we have a roomId, we're in lobby phase, and not already connected
@@ -146,21 +149,6 @@ function MultiplayerPageContent() {
     }
   }, [multiplayerState.gameState]); // Only depend on gameState, not the typing data
 
-  // Periodic sync as backup (every 3 seconds during active game)
-  useEffect(() => {
-    if (multiplayerState.gameState !== 'active') {
-      return;
-    }
-
-    const syncInterval = setInterval(() => {
-      // Send current local progress to keep multiplayer in sync
-      multiplayerActions.handleTyping(localCurrentWordInput, localCurrentWordIndex);
-    }, 3000); // Sync every 3 seconds instead of every keystroke
-
-    return () => {
-      clearInterval(syncInterval);
-    };
-  }, [multiplayerState.gameState]); // Remove problematic dependencies
 
   // EXACT COPY of single-player typing logic
   const handleInputChange = useCallback((value: string) => {
@@ -250,6 +238,47 @@ function MultiplayerPageContent() {
   const localAccuracy = useMemo(() => {
     return localTotalTypedChars > 0 ? Math.round((localCorrectChars / localTotalTypedChars) * 100) : 100;
   }, [localCorrectChars, localTotalTypedChars]);
+
+  // Create refs to capture current values for periodic sync
+  const syncDataRef = useRef({
+    localCurrentWordInput: '',
+    localCurrentWordIndex: 0,
+    localCorrectChars: 0,
+    localWpm: 0,
+    localAccuracy: 100
+  });
+
+  // Update refs whenever local data changes
+  useEffect(() => {
+    syncDataRef.current = {
+      localCurrentWordInput,
+      localCurrentWordIndex,
+      localCorrectChars,
+      localWpm,
+      localAccuracy
+    };
+  }, [localCurrentWordInput, localCurrentWordIndex, localCorrectChars, localWpm, localAccuracy]);
+
+  // Periodic sync for smooth car movement (every 500ms during active game)
+  useEffect(() => {
+    if (multiplayerState.gameState !== 'active') {
+      return;
+    }
+
+    const syncInterval = setInterval(() => {
+      // Get current values from ref to ensure we send latest progress
+      const current = syncDataRef.current;
+      multiplayerActions.handleTyping(current.localCurrentWordInput, current.localCurrentWordIndex, {
+        correctChars: current.localCorrectChars,
+        wpm: current.localWpm,
+        accuracy: current.localAccuracy
+      });
+    }, 500); // Sync every 500ms for smooth car movement
+
+    return () => {
+      clearInterval(syncInterval);
+    };
+  }, [multiplayerState.gameState, multiplayerActions.handleTyping]);
 
   // Win condition check (like single-player) - only trigger once
   useEffect(() => {
@@ -372,7 +401,12 @@ function MultiplayerPageContent() {
                   <MultiplayerTrack
                     players={multiplayerActions.getPlayerList()}
                     targetCharCount={multiplayerState.targetCharCount}
-                    currentPlayerId={multiplayerState.currentPlayer?.id}
+                    currentPlayerId={localPlayerId}
+                    localPlayerProgress={{
+                      correctChars: localCorrectChars,
+                      wpm: localWpm,
+                      accuracy: localAccuracy
+                    }}
                   />
 
                   <MultiplayerCountdown
@@ -414,7 +448,12 @@ function MultiplayerPageContent() {
                   <MultiplayerTrack
                     players={multiplayerActions.getPlayerList()}
                     targetCharCount={multiplayerState.targetCharCount}
-                    currentPlayerId={multiplayerState.currentPlayer?.id}
+                    currentPlayerId={localPlayerId}
+                    localPlayerProgress={{
+                      correctChars: localCorrectChars,
+                      wpm: localWpm,
+                      accuracy: localAccuracy
+                    }}
                   />
 
                   <TypingArea
@@ -484,7 +523,12 @@ function MultiplayerPageContent() {
                   <MultiplayerTrack
                     players={multiplayerActions.getPlayerList()}
                     targetCharCount={multiplayerState.targetCharCount}
-                    currentPlayerId={multiplayerState.currentPlayer?.id}
+                    currentPlayerId={localPlayerId}
+                    localPlayerProgress={{
+                      correctChars: localCorrectChars,
+                      wpm: localWpm,
+                      accuracy: localAccuracy
+                    }}
                   />
 
                   <MultiplayerLeaderboard
