@@ -6,6 +6,10 @@ interface EndGameModalProps {
   timeElapsed: number;
   onRestart: () => void;
   onHome: () => void;
+  // Multiplayer-specific props
+  mode?: 'single' | 'multiplayer';
+  winnerName?: string;
+  currentPlayerName?: string;
 }
 
 export default function EndGameModal({
@@ -16,6 +20,9 @@ export default function EndGameModal({
   timeElapsed,
   onRestart,
   onHome,
+  mode = 'single',
+  winnerName,
+  currentPlayerName,
 }: EndGameModalProps) {
   if (!isOpen) return null;
 
@@ -25,20 +32,50 @@ export default function EndGameModal({
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Helper functions for multiplayer vs single player messaging
+  const getEmoji = () => {
+    if (mode === 'multiplayer') {
+      return winner === 'player' ? '🏆' : '🏁';
+    }
+    return winner === 'player' ? '🏆' : '🤖';
+  };
+
+  const getTitle = () => {
+    if (mode === 'multiplayer') {
+      if (winner === 'player') {
+        return 'You Win!';
+      } else {
+        return winnerName ? `${winnerName} Wins!` : 'Race Finished!';
+      }
+    }
+    return winner === 'player' ? 'You Win!' : 'Bot Wins!';
+  };
+
+  const getMessage = () => {
+    if (mode === 'multiplayer') {
+      if (winner === 'player') {
+        return 'Congratulations! You won the race!';
+      } else {
+        return winnerName ? `${winnerName} finished first. Better luck next time!` : 'Better luck next time!';
+      }
+    }
+    return winner === 'player'
+      ? 'Congratulations! You beat the bot!'
+      : 'Better luck next time! Keep practicing.';
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
         <div className="mb-6">
           <div className="text-6xl mb-4">
-            {winner === 'player' ? '🏆' : '🤖'}
+            {getEmoji()}
           </div>
           <h2 className="text-3xl font-bold mb-2">
-            {winner === 'player' ? 'You Win!' : 'Bot Wins!'}
+            {getTitle()}
           </h2>
           <p className="text-gray-600">
-            {winner === 'player'
-              ? 'Congratulations! You beat the bot!'
-              : 'Better luck next time! Keep practicing.'}
+            {getMessage()}
           </p>
         </div>
 

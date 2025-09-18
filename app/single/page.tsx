@@ -189,6 +189,10 @@ export default function SinglePlayerPage() {
     if (gameState === 'active' && e.key === ' ') {
       e.preventDefault();
 
+      // Only allow spacebar advancement if user has typed something
+      if (currentWordInput.length === 0) {
+        return; // Ignore spacebar if no input for current word
+      }
 
       // Complete current word and move to next
       if (currentWordIndex < words.length) {

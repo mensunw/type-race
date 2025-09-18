@@ -199,8 +199,12 @@ function MultiplayerPageContent() {
     if (multiplayerState.gameState === 'active' && e.key === ' ') {
       e.preventDefault();
 
+      // Only allow spacebar advancement if user has typed something
+      if (localCurrentWordInput.length === 0) {
+        return; // Ignore spacebar if no input for current word
+      }
 
-      // Complete current word and move to next (EXACT COPY from single-player)
+      // Complete current word and move to next
       if (localCurrentWordIndex < textWords.length) {
         setLocalCompletedWords([...localCompletedWords, localCurrentWordInput]);
         setLocalCurrentWordInput('');
@@ -574,6 +578,9 @@ function MultiplayerPageContent() {
                 timeElapsed={Math.floor(multiplayerState.elapsedTime / 1000)}
                 onRestart={handleGameRestart}
                 onHome={handleLeaveRoom}
+                mode="multiplayer"
+                winnerName={winner?.name}
+                currentPlayerName={currentPlayerStats.name}
               />
             )}
           </div>
