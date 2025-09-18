@@ -132,65 +132,17 @@ function MultiplayerPageContent() {
   const [localCorrectChars, setLocalCorrectChars] = useState(0);
   const [localTotalTypedChars, setLocalTotalTypedChars] = useState(0);
 
-  // Sync local state with multiplayer state when game starts/resets
+  // Reset local state when game starts (but don't sync with server state during gameplay)
   useEffect(() => {
     if (multiplayerState.gameState === 'active' || multiplayerState.gameState === 'countdown') {
-      setLocalCurrentWordIndex(multiplayerState.currentWordIndex);
-      setLocalCurrentWordInput(multiplayerState.currentWordInput);
-      setLocalCompletedWords(multiplayerState.completedWords);
+      // Only reset when transitioning to active/countdown, not during gameplay
+      setLocalCurrentWordIndex(0);
+      setLocalCurrentWordInput('');
+      setLocalCompletedWords([]);
       setLocalCorrectChars(0);
       setLocalTotalTypedChars(0);
     }
-  }, [multiplayerState.gameState, multiplayerState.currentWordIndex, multiplayerState.currentWordInput, multiplayerState.completedWords]);
-
-  // Calculate local progress and stats (like single player)
-  const calculateLocalStats = useCallback(() => {
-    let totalCorrect = 0;
-    let totalTyped = 0;
-
-    // Count correct chars from completed words
-    for (let i = 0; i < localCompletedWords.length; i++) {
-      const expectedWord = textWords[i] || '';
-      const typedWord = localCompletedWords[i];
-      totalTyped += typedWord.length + 1; // +1 for space
-
-      // Count correct characters in this word
-      const correctInWord = Math.min(typedWord.length, expectedWord.length);
-      for (let j = 0; j < correctInWord; j++) {
-        if (typedWord[j] === expectedWord[j]) {
-          totalCorrect++;
-        }
-      }
-
-      // Add space if word was correct
-      if (typedWord === expectedWord) {
-        totalCorrect++;
-      }
-    }
-
-    // Count correct chars in current word being typed
-    if (localCurrentWordIndex < textWords.length) {
-      const expectedWord = textWords[localCurrentWordIndex];
-      totalTyped += localCurrentWordInput.length;
-
-      const correctInCurrentWord = Math.min(localCurrentWordInput.length, expectedWord.length);
-      for (let j = 0; j < correctInCurrentWord; j++) {
-        if (localCurrentWordInput[j] === expectedWord[j]) {
-          totalCorrect++;
-        }
-      }
-    }
-
-    setLocalCorrectChars(totalCorrect);
-    setLocalTotalTypedChars(totalTyped);
-  }, [localCompletedWords, localCurrentWordIndex, localCurrentWordInput, textWords]);
-
-  // Update stats when local typing state changes
-  useEffect(() => {
-    if (multiplayerState.gameState === 'active') {
-      calculateLocalStats();
-    }
-  }, [multiplayerState.gameState, localCurrentWordIndex, localCurrentWordInput, localCompletedWords, calculateLocalStats]);
+  }, [multiplayerState.gameState]); // Only depend on gameState, not the typing data
 
   // Periodic sync as backup (every 3 seconds during active game)
   useEffect(() => {
@@ -204,39 +156,82 @@ function MultiplayerPageContent() {
     return () => clearInterval(syncInterval);
   }, [multiplayerState.gameState, localCurrentWordInput, localCurrentWordIndex, multiplayerActions]);
 
-  // Typing handlers (like single player)
+  // EXACT COPY of single-player typing logic
   const handleInputChange = useCallback((value: string) => {
     if (multiplayerState.gameState !== 'active') return;
 
-    // Check if user typed a space (word completion)
-    if (value.includes(' ')) {
-      // Complete current word and move to next
-      if (localCurrentWordIndex < textWords.length) {
-        const currentInput = value.replace(/\s/g, ''); // Remove space for the completed word
-        const newCompletedWords = [...localCompletedWords, currentInput];
-        const newWordIndex = localCurrentWordIndex + 1;
+    // Extract just the current word being typed (remove any spaces)
+    const currentInput = value.replace(/\s/g, '');
+    setLocalCurrentWordInput(currentInput);
 
-        // Update local state immediately
-        setLocalCompletedWords(newCompletedWords);
+    // Calculate stats (EXACT COPY from single-player)
+    let totalCorrect = 0;
+    let totalTyped = 0;
+
+    // Count correct chars from completed words
+    for (let i = 0; i < localCompletedWords.length; i++) {
+      const expectedWord = textWords[i] || '';
+      const typedWord = localCompletedWords[i];
+      totalTyped += typedWord.length + 1; // +1 for space
+
+      // Skip logic removed for multiplayer - we don't have skippedWords
+      for (let j = 0; j < Math.min(expectedWord.length, typedWord.length); j++) {
+        if (expectedWord[j] === typedWord[j]) {
+          totalCorrect++;
+        }
+      }
+      if (expectedWord === typedWord) {
+        totalCorrect++; // +1 for correct space
+      }
+    }
+
+    // Count correct chars from current word
+    if (localCurrentWordIndex < textWords.length) {
+      const expectedWord = textWords[localCurrentWordIndex];
+      totalTyped += currentInput.length;
+
+      for (let i = 0; i < Math.min(expectedWord.length, currentInput.length); i++) {
+        if (expectedWord[i] === currentInput[i]) {
+          totalCorrect++;
+        }
+      }
+    }
+
+    setLocalCorrectChars(totalCorrect);
+    setLocalTotalTypedChars(totalTyped);
+  }, [multiplayerState.gameState, localCompletedWords, localCurrentWordIndex, textWords]);
+
+  const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
+    if (multiplayerState.gameState === 'active' && e.key === ' ') {
+      e.preventDefault();
+
+
+      // Complete current word and move to next (EXACT COPY from single-player)
+      if (localCurrentWordIndex < textWords.length) {
+        setLocalCompletedWords([...localCompletedWords, localCurrentWordInput]);
         setLocalCurrentWordInput('');
-        setLocalCurrentWordIndex(newWordIndex);
+        setLocalCurrentWordIndex(localCurrentWordIndex + 1);
 
         // Send word completion to server
-        multiplayerActions.handleTyping(currentInput, newWordIndex);
+        multiplayerActions.handleTyping(localCurrentWordInput, localCurrentWordIndex + 1);
       }
-    } else {
-      // Regular typing - extract just the current word being typed (remove any spaces)
-      const currentInput = value.replace(/\s/g, '');
-
-      // Update local state immediately (no network delay)
-      setLocalCurrentWordInput(currentInput);
     }
-  }, [multiplayerState.gameState, localCurrentWordIndex, localCompletedWords, textWords.length, multiplayerActions]);
 
-  const handleKeyPress = useCallback((_e: React.KeyboardEvent) => {
-    // Handle other key events if needed (backspace, etc.)
-    // Spacebar is now handled in handleInputChange
-  }, []);
+    if (multiplayerState.gameState === 'active' && e.key === 'Backspace') {
+      e.preventDefault();
+
+      if (localCurrentWordInput.length > 0) {
+        // Remove character from current word
+        setLocalCurrentWordInput(localCurrentWordInput.slice(0, -1));
+      } else if (localCompletedWords.length > 0) {
+        // Go back to previous word
+        const lastWord = localCompletedWords[localCompletedWords.length - 1];
+        setLocalCompletedWords(localCompletedWords.slice(0, -1));
+        setLocalCurrentWordInput(lastWord);
+        setLocalCurrentWordIndex(Math.max(0, localCurrentWordIndex - 1));
+      }
+    }
+  }, [multiplayerState.gameState, localCurrentWordIndex, localCompletedWords, localCurrentWordInput, textWords.length, multiplayerActions]);
 
   // Calculate local WPM and accuracy (like single player)
   const localWpm = useMemo(() => {

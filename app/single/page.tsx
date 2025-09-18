@@ -189,6 +189,7 @@ export default function SinglePlayerPage() {
     if (gameState === 'active' && e.key === ' ') {
       e.preventDefault();
 
+
       // Complete current word and move to next
       if (currentWordIndex < words.length) {
         setCompletedWords([...completedWords, currentWordInput]);

@@ -1,5 +1,3 @@
-Issue with multiplayer type area:
-When I type "The quick" this happens
-/Users/mensun/Desktop/Screenshot 2025-09-17 at 6.07.42 PM.png
-
-I need you to document changes made into CHANGELOG.md, and alos update CLAUDE.md based on the relevant changes you have made
+Issue with multiplayer game:
+- Game does not end with Player 1 being the winner, despite me getting 319/200 characters correct
+- /Users/mensun/Desktop/Screenshot 2025-09-18 at 10.15.13 AM.png
